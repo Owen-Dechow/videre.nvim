@@ -5,7 +5,7 @@ terminal interface, does not have this luxury. While one can't create an
 interface like JSON Crack, it is possible to build a similar JSON explorer
 using Neovim's terminal interface.
 
-https://github.com/user-attachments/assets/ca8f7021-5048-456a-9d1d-dc32328bbb25
+[Json Graph View Preview](https://github.com/user-attachments/assets/1b50ce8a-96c9-4d81-a06e-d5a266c1083b)
 
 ```
 ╭──────────────────┬──╮╭──┬──┬──────────────────────────────────╮╭──┬──────┬───────────╮
