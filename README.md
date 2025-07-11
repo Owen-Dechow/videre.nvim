@@ -34,6 +34,16 @@ lazy.nvim
 return {
     "Owen-Dechow/nvim_json_graph_view",
     opts = {
+        -- editor_type = "split", -- split, floating
+        -- -- set the window editor type
+
+        -- floating_editor_style = {
+        --     margin = 2,
+        --     border = "double",
+        --     zindex = 10
+        -- },
+        -- -- configure the floating window style
+
         -- accept_all_files = false,
         -- -- Allow opening non .json files
 

@@ -4,6 +4,16 @@ local edges = require("json_graph_view.edges")
 local M = {
     expanded = {},
     config = {
+        ---@type string
+        editor_type = "split", -- split, floating
+
+        ---@type table
+        floating_editor_style = {
+            margin = 2,
+            border = "double",
+            zindex = 10
+        },
+
         ---@type boolean
         accept_all_files = true,
 
@@ -671,18 +681,53 @@ end
 M.SplitView = function()
     local win = vim.api.nvim_get_current_win()
     local total_width = vim.api.nvim_win_get_width(win)
-
-    -- Save and override splitright
-    local original_splitright = vim.opt.splitright
-    vim.opt.splitright = true
-    vim.cmd('vsplit')
-    vim.opt.splitright = original_splitright
-
-    local new_win = vim.api.nvim_get_current_win()
-    local target_width = total_width - 20
-    vim.api.nvim_win_set_width(new_win, target_width)
-
     local editor_buf = vim.api.nvim_create_buf(false, true)
+    local new_win
+    local target_width
+
+    if M.config.editor_type == "split" then
+        -- Save and override splitright
+        local original_splitright = vim.opt.splitright
+        vim.opt.splitright = true
+        vim.cmd('vsplit')
+        vim.opt.splitright = original_splitright
+
+        new_win = vim.api.nvim_get_current_win()
+        target_width = total_width - 20
+        vim.api.nvim_win_set_width(new_win, target_width)
+    else
+        local sub = 2
+        if M.config.floating_editor_style.border == "shadow" then
+            sub = 1
+        end
+
+        if M.config.floating_editor_style.border == nil then
+            sub = 0
+        end
+
+        local target_height =
+            vim.api.nvim_win_get_height(win)
+            - M.config.floating_editor_style.margin * 2
+            - sub
+
+        target_width = total_width
+            - M.config.floating_editor_style.margin * 2
+            - sub
+
+        new_win = vim.api.nvim_open_win(editor_buf, false, {
+            relative = "win",
+            row = M.config.floating_editor_style.margin,
+            col = M.config.floating_editor_style.margin / 2,
+            width = target_width,
+            height = target_height,
+            anchor = "NW",
+            border = M.config.floating_editor_style.border,
+            zindex = M.config.floating_editor_style.zindex,
+        })
+
+        vim.api.nvim_set_current_win(new_win)
+    end
+
     vim.api.nvim_win_set_buf(new_win, editor_buf)
     vim.api.nvim_win_set_option(new_win, 'number', false)
     vim.api.nvim_win_set_option(new_win, 'relativenumber', false)
