@@ -29,7 +29,17 @@ using Neovim's terminal interface.
 
 ## Setup
 
-lazy.nvim
+[lazy.nvim](https://github.com/folke/lazy.nvim) (suggested setup)
+```lua
+return {
+    "Owen-Dechow/nvim_json_graph_view",
+    opts = {
+        round_units = false
+    }
+}
+```
+
+[lazy.nvim](https://github.com/folke/lazy.nvim) (all options shown)
 ```lua
 return {
     "Owen-Dechow/nvim_json_graph_view",
