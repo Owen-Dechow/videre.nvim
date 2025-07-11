@@ -245,12 +245,8 @@ end
 ---@param render_info table
 ---@param jump_to_word boolean
 M.JumpToLink = function(layer, row, render_info, jump_to_word)
-    local col = render_info.col_idxs[layer]
-    vim.api.nvim_win_set_cursor(0, { 2, col })
-
-    if row ~= 1 then
-        vim.cmd("normal! " .. (row - 1) .. "j")
-    end
+    local col = render_info.row_unit_breaks[row][layer]
+    vim.api.nvim_win_set_cursor(0, { row + 1, col.start })
 
     if jump_to_word then
         vim.cmd("call search('\\S')")
@@ -643,12 +639,6 @@ M.RenderGraph = function(json_obj, editor_buf, key_set)
             lines[#lines + 1] = text_line
         end
 
-        local set_render_info = render_info.col_idxs == nil
-
-        if set_render_info then
-            render_info.col_idxs = {}
-        end
-
         local current_line_callbacks = {}
         local text_line = ""
         for col_idx, section in pairs(lines) do
@@ -667,10 +657,6 @@ M.RenderGraph = function(json_obj, editor_buf, key_set)
                         current_line_callbacks[start][#current_line_callbacks[start] + 1] = callback
                     end
                 end
-            end
-
-            if set_render_info then
-                render_info.col_idxs[#render_info.col_idxs + 1] = start
             end
 
             text_line = text_line .. section[1]
