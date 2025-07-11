@@ -377,6 +377,8 @@ end
 ---Apply highlighting to current buffer
 M.ApplyHighlighting = function()
     vim.cmd([[highlight MyOperators guifg=#009900]])
+    vim.api.nvim_set_hl(0, "JsonViewStatusline", { bg = "#1e1e2e", fg = "#ffffff", bold = true })
+    vim.api.nvim_set_hl(0, "JsonViewUnitHighlight", { link = "MyOperators" })
 
     vim.cmd("syn region String start=+\"+ skip=+\\\\\\\\\\|\\\\\"+ end=+\"+ contains=@Spell")
     vim.cmd([[syn match Identifier /│\s*\zs\w\+\ze\s*│/ contains=@Spell]])
@@ -572,7 +574,13 @@ end
 ---@param key_set any[]
 M.RenderGraph = function(json_obj, editor_buf, key_set)
     local text_output_table = {}
-    local render_info = { line_callbacks = {}, shown_obj = json_obj, shown_key_set = key_set }
+    local render_info = {
+        line_callbacks = {},
+        shown_obj = json_obj,
+        shown_key_set = key_set,
+        row_unit_breaks = {}
+    }
+
     M.TableObject(json_obj, text_output_table, 1, key_set, nil)
     local connections = M.BuildConnections(text_output_table)
 
@@ -583,10 +591,14 @@ M.RenderGraph = function(json_obj, editor_buf, key_set)
     while any do
         local lines = {}
         any = false
+        local line_idx = #output_lines + 1
+        local row_col_info = {}
+        render_info.row_unit_breaks[line_idx] = row_col_info
         for col_idx, col in pairs(text_output_table) do
             local text_line
             if line > col.lines then
                 text_line = { string.rep(" ", col.width), {} }
+                row_col_info[col_idx] = { empty = true }
             else
                 any = true
                 local b_line = line
@@ -609,6 +621,8 @@ M.RenderGraph = function(json_obj, editor_buf, key_set)
                             .. string.rep(fill, col.width - utf8len_)
                             .. right, text_line[4]
                         }
+
+                        row_col_info[col_idx] = { empty = false, width = string.len(text_line[1]), box = box }
 
                         break
                     end
@@ -637,11 +651,13 @@ M.RenderGraph = function(json_obj, editor_buf, key_set)
 
         local current_line_callbacks = {}
         local text_line = ""
-        for _, section in pairs(lines) do
+        for col_idx, section in pairs(lines) do
             local start = string.len(text_line)
             if current_line_callbacks[start] == nil then
                 current_line_callbacks[start] = {}
             end
+
+            row_col_info[col_idx].start = start
 
             if section[2] then
                 local limit = section[2].limit
@@ -732,13 +748,11 @@ M.SplitView = function()
     vim.api.nvim_win_set_option(new_win, 'number', false)
     vim.api.nvim_win_set_option(new_win, 'relativenumber', false)
     vim.api.nvim_buf_set_option(editor_buf, "filetype", M.plugin_name)
+    vim.api.nvim_buf_set_option(editor_buf, "cursorline", false)
 
     if M.config.disable_line_wrap then
         vim.api.nvim_buf_set_option(editor_buf, "wrap", false)
     end
-
-    -- Define highlight group for the statusline
-    vim.api.nvim_set_hl(0, "JsonViewStatusline", { bg = "#1e1e2e", fg = "#ffffff", bold = true })
 
     -- Floating statusline setup
     local status_buf = vim.api.nvim_create_buf(false, true)
@@ -826,6 +840,34 @@ M.CursorMoved = function(editor_buf, json_obj, file, file_buf, update_statusline
         file_buf = file_buf,
         render_info = M.render_info[editor_buf],
     }
+
+    local row_col_info = M.render_info[editor_buf].row_unit_breaks[pos[1] - 1]
+    vim.api.nvim_buf_clear_namespace(0, -1, 0, -1)
+    for col_idx, col in pairs(row_col_info) do
+        if not col.empty then
+            if pos[2] >= col.start and pos[2] < col.start + col.width then
+                for row_idx = col.box.top_line, col.box.top_line + #col.box.text_lines - 1 do
+                    row_col_info = M.render_info[editor_buf].row_unit_breaks[row_idx][col_idx]
+                    if
+                        row_idx == col.box.top_line
+                        or row_idx == col.box.top_line + #col.box.text_lines - 1
+                    then
+                        vim.api.nvim_buf_add_highlight(0, -1, "JsonViewUnitHighlight", row_idx, row_col_info.start,
+                            row_col_info.start + row_col_info.width)
+                    else
+                        vim.api.nvim_buf_add_highlight(0, -1, "JsonViewUnitHighlight", row_idx, row_col_info.start,
+                            row_col_info.start + 1)
+
+                        vim.api.nvim_buf_add_highlight(0, -1, "JsonViewUnitHighlight", row_idx,
+                            row_col_info.start + row_col_info.width - 3,
+                            row_col_info.start + row_col_info.width)
+                    end
+                end
+
+                vim.api.nvim_buf_add_highlight(0, -1, "CursorLine", pos[1] - 1, col.start, col.start + col.width)
+            end
+        end
+    end
 
     for start, callback_set in pairs(M.render_info[editor_buf].line_callbacks[pos[1] - 1]) do
         if pos[2] >= start then
