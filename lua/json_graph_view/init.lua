@@ -81,14 +81,19 @@ local M = {
 
 ---Converts json object to its string representation
 ---@param val any
+---@param no_quotes boolean | nil
 ---@return string | nil
-M.GetValAsString = function(val)
+M.GetValAsString = function(val, no_quotes)
     if val == vim.NIL then
         return "null"
     elseif val == vim.empty_dict() then
         return "{}"
     elseif type(val) == "string" then
-        return '"' .. utils.escape_string(val) .. '"'
+        if no_quotes then
+            return utils.escape_string(val)
+        else
+            return '"' .. utils.escape_string(val) .. '"'
+        end
     elseif type(val) == "number" then
         return tostring(val)
     elseif type(val) == "boolean" then
@@ -110,7 +115,7 @@ M.GetLenOfValue = function(val)
     if val == vim.NIL then
         return 4
     elseif type(val) == "string" then
-        return utils.utf8len(val) + 2
+        return utils.utf8len(utils.escape_string(val)) + 2
     elseif type(val) == "number" then
         return #tostring(val)
     elseif type(val) == "boolean" then
@@ -275,7 +280,7 @@ M.TableObject = function(json_obj, out_table, layer_idx, key_set, from_row)
     local connections = {}
 
     for key, val in pairs(json_obj) do
-        max_len_left = math.max(max_len_left, #tostring(key))
+        max_len_left = math.max(max_len_left, M.GetLenOfValue(key))
         max_len_right = math.max(max_len_right, M.GetLenOfValue(val))
     end
 
@@ -330,7 +335,7 @@ M.TableObject = function(json_obj, out_table, layer_idx, key_set, from_row)
                 }
             end
 
-            local string_key = tostring(key)
+            local string_key = M.GetValAsString(key, true)
             local left = left_edge ..
                 string.rep(" ", max_len_left - #string_key) .. string_key .. edges.edge.LEFT_AND_RIGHT
             local right = M.GetValAsString(val)
@@ -376,7 +381,9 @@ M.ApplyHighlighting = function()
     vim.api.nvim_set_hl(0, "JsonViewStatusline", { bg = "#1e1e2e", fg = "#ffffff", bold = true })
     vim.api.nvim_set_hl(0, "JsonViewUnitHighlight", { link = "MyOperators" })
 
-    vim.cmd("syn region String start=+\"+ skip=+\\\\\\\\\\|\\\\\"+ end=+\"+ contains=@Spell")
+    vim.cmd([[syntax match Special /\\[\\\"'abfnrtv]/ containedin=String]])
+    vim.cmd([[syntax region String start=+"+ skip=+\\\\\\|\\"+ end=+"+ contains=StringEscape,@Spell]])
+
     vim.cmd([[syn match Identifier /│\s*\zs\w\+\ze\s*│/ contains=@Spell]])
     vim.cmd([[syn match Identifier /╪\s*\zs\w\+\ze\s*│/ contains=@Spell]])
     vim.cmd("syn keyword Keyword null")
