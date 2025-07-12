@@ -27,9 +27,17 @@ using Neovim's terminal interface.
 > This plugin is still under development. Breaking changes will be avoided
 > unless deemed necessary.
 
+## 🛠️ Features
+
+* Algorithmic Graph Rendering
+* Collapsible Units
+* Jumping Between Linked Units
+* Set Any Unit as Root
+* Customizable Styles
+
 ## ⚙️ Setup
 
-[lazy.nvim](https://github.com/folke/lazy.nvim) (suggested setup)
+[lazy.nvim](https://github.com/folke/lazy.nvim) (Suggested Setup)
 ```lua
 return {
     "Owen-Dechow/nvim_json_graph_view",
