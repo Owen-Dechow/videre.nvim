@@ -1,4 +1,4 @@
-# nvim_json_graph_view
+# 📊 nvim_json_graph_view
 
 Many editors have the option to view JSON files as a graph. Neovim, with a
 terminal interface, does not have this luxury. While one can't create an
@@ -27,7 +27,7 @@ using Neovim's terminal interface.
 > This plugin is still under development. Breaking changes will be avoided
 > unless deemed necessary.
 
-## Setup
+## ⚙️ Setup
 
 [lazy.nvim](https://github.com/folke/lazy.nvim) (suggested setup)
 ```lua
@@ -39,73 +39,102 @@ return {
 }
 ```
 
-[lazy.nvim](https://github.com/folke/lazy.nvim) (all options shown)
+## 🧩 Options
 ```lua
-return {
-    "Owen-Dechow/nvim_json_graph_view",
-    opts = {
-        -- editor_type = "split", -- split, floating
-        -- -- set the window editor type
+{
+    -- set the window editor type
+    editor_type = "split", -- split, floating
 
-        -- floating_editor_style = {
-        --     margin = 2,
-        --     border = "double",
-        --     zindex = 10
-        -- },
-        -- -- configure the floating window style
+    -- configure the floating window style
+    floating_editor_style = {
+        margin = 2,
+        border = "double",
+        zindex = 10
+    },
 
-        -- accept_all_files = false,
-        -- -- Allow opening non .json files
+    -- Allow opening non .json files
+    accept_all_files = false,
 
-        -- max_lines = 5,
-        -- -- Number of lines before collapsing
+    -- Number of lines before collapsing
+    max_lines = 5,
 
-        -- round_units = true,
-        -- -- Set the unit style to round
+    -- Set the unit style to round
+    round_units = true,
 
-        -- round_connections = true,
-        -- -- Set the connection style to round
+    -- Set the connection style to round
+    round_connections = true,
 
-        -- disable_line_wrap = true,
-        -- -- Disable line wrapping for the graph buffer
+    -- Disable line wrapping for the graph buffer
+    disable_line_wrap = true,
 
-        -- keymap_priorities = {
-            -- expand = 4,
-            -- collapse = 2,
-            -- link_forward = 3,
-            -- link_backward = 3,
-            -- set_as_root = 1,
-        -- },
-        -- -- Set the priority of keymaps for the quick
-        -- --   action keymap.
+    -- Set the priority of keymaps for the quick
+    --   action keymap.
+    keymap_priorities = {
+        expand = 4,
+        collapse = 2,
+        link_forward = 3,
+        link_backward = 3,
+        set_as_root = 1,
+    },
 
-        -- keymaps = {
-            -- expand = "E",
-            -- -- Expanding collapsed areas
+    -- Set the keys actions will be mapped to
+    keymaps = {
+        -- Expanding collapsed areas
+        expand = "E",
 
-            -- collapse = "E",
-            -- -- Collapse expanded areas
+        -- Collapse expanded areas
+        collapse = "E",
 
-            -- link_forward = "L",
-            -- -- Jump to linked unit
+        -- Jump to linked unit
+        link_forward = "L",
 
-            -- link_backward = "B",
-            -- -- Jump back to unit parent
+        -- Jump back to unit parent
+        link_backward = "B",
 
-            -- set_as_root = "R",
-            -- -- Set current unit as root
+        -- Set current unit as root
+        set_as_root = "R",
 
-            -- quick_action = "<CR>",
-            -- -- Aliased to first priority available keymap
+        -- Aliased to first priority available keymap
+        quick_action = "<CR>",
 
-            -- close_window = "q"
-            -- -- Close the window
-        -- }
+        -- Close the window
+        close_window = "q"
     }
 }
 ```
 
-## Running
+## 🚀 Running
 
 To open a graph view, go to a json file and run `:JsonGraphView`.
 The JsonGraphView window will open in a plit window to the right.
+The JsonGraphView buffer will have a filetype of `JsonGraphView`.
+
+
+## 🎯 Future Goals
+> [!NOTE]
+> These goals are long term and will only be started after this
+> plugin is deemed stable and there is enough support. They
+> will be developed in separate branches.
+
+### 📚 Multiple Filetype Support
+
+Add support for different filetypes such as TAML and TOML.
+
+(Issue: [YAML Support *#4*](https://github.com/Owen-Dechow/nvim_json_graph_view/issues/4))
+
+### ✏️ File Editing
+
+Add support for file editing directly form JsonGraphView.
+
+(Issue: [File Editing *#5*](https://github.com/Owen-Dechow/nvim_json_graph_view/issues/5))
+
+## 📄 License
+
+This software is licensed under the MIT Standard License
+[(Copyright (c) 2025 Owen Dechow)](https://github.com/Owen-Dechow/nvim_json_graph_view/blob/main/LICENSE).
+
+## 🤝 Contributions
+
+Contributions to this software are greatly appreciated.
+Please read [CONTRIBUTING.md](https://github.com/Owen-Dechow/nvim_json_graph_view/blob/main/CONTRIBUTING.md)
+for further guidelines.

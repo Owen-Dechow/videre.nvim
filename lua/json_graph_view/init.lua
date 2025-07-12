@@ -81,7 +81,7 @@ local M = {
 
 ---Converts json object to its string representation
 ---@param val any
----@return string
+---@return string | nil
 M.GetValAsString = function(val)
     if val == vim.NIL then
         return "null"
@@ -105,7 +105,7 @@ end
 ---Gets the length of the string representation of
 ---a json value.
 ---@param val any
----@return integer
+---@return integer | nil
 M.GetLenOfValue = function(val)
     if val == vim.NIL then
         return 4
@@ -876,7 +876,7 @@ M.CursorMoved = function(editor_buf, json_obj, file, file_buf, update_statusline
 
     table.sort(callback_keys, function(a, b) return a[3] >= b[3] end)
 
-    local statusline_text = " (" .. M.config.keymaps.close_window .. "=Close Window)"
+    local statusline_text = M.plugin_name .. " (" .. M.config.keymaps.close_window .. "=Close Window)"
 
     if enter_map then
         vim.keymap.set("n", M.config.keymaps.quick_action, function()
