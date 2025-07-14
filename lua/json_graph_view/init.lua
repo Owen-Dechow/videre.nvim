@@ -922,9 +922,6 @@ M.ShowJsonWindow = function(file_buf, json_obj, file)
         buffer = editor_buf,
         callback = function() M.CursorMoved(editor_buf, json_obj, file, file_buf, update_statusline) end,
     })
-
-
-    vim.notify(M.plugin_name .. " View Opened")
 end
 
 ---Opens the JsonGraphView on the specified buffer
