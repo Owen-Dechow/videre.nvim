@@ -34,6 +34,7 @@ using Neovim's terminal interface.
 * Jumping Between Linked Units
 * Set Any Unit as Root
 * Customizable Styles
+* Support for Different Filetypes
 
 ## ⚙️ Setup
 
@@ -117,18 +118,28 @@ To open a graph view, go to a json file and run `:JsonGraphView`.
 The JsonGraphView window will open in a plit window to the right.
 The JsonGraphView buffer will have a filetype of `JsonGraphView`.
 
+## 🗂️ Different File Types
+
+To enable different filetypes just add the correct parser plugin.
+JsonGraphView will automatically detect the installed plugin and
+allow you to explore that filetype.
+
+Here are a list of supported parsers:
+* JSON: ***builtin***
+* YAML: [graph_view_yaml_parser](https://github.com/Owen-Dechow/graph_view_yaml_parser)
+
+If you would like to add a parser please open an issue or contribute a PR.
 
 ## 🎯 Future Goals
 > [!NOTE]
 > These goals are long term and will only be started after this
-> plugin is deemed stable and there is enough support. They
-> will be developed in separate branches.
+> plugin is deemed stable and there is enough support.
 
 ### 📚 Multiple Filetype Support
 
-Add support for different filetypes such as TAML and TOML.
+Add support for different filetypes such as YAML and TOML.
 
-(Issue: [YAML Support *#4*](https://github.com/Owen-Dechow/nvim_json_graph_view/issues/4))
+(Issue: [Multiple Filetype Support *#4*](https://github.com/Owen-Dechow/nvim_json_graph_view/issues/4))
 
 ### ✏️ File Editing
 
