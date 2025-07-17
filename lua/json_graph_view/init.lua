@@ -1,5 +1,7 @@
 local utils = require("json_graph_view.utils")
 local edges = require("json_graph_view.edges")
+local consts = require("json_graph_view.consts")
+local langs = require("json_graph_view.langs")
 
 local M = {
     expanded = {},
@@ -13,9 +15,6 @@ local M = {
             border = "double",
             zindex = 10
         },
-
-        ---@type boolean
-        accept_all_files = true,
 
         ---@type integer
         max_lines = 5,
@@ -72,22 +71,28 @@ local M = {
         }
     },
     render_info = {},
-    plugin_name = "JsonGraphView"
 }
 
 ---@alias Vec2 { [1]: integer, [2]: integer }
 ---@alias Callback {[1]: string, [2]: function}
 ---@alias TextLine { [1]: string, [2]: string, [3]: string, [4]: Callback[]}
 
----Converts json object to its string representation
+---@alias LangSpec {
+---highlight: function|nil,
+---encode: function,
+---decode: function,
+---symbols: {null: string|nil, lst: string|nil, tbl: string|nil}}
+
+---Converts object to its string representation
 ---@param val any
 ---@param no_quotes boolean | nil
+---@param lang_spec LangSpec
 ---@return string | nil
-M.GetValAsString = function(val, no_quotes)
+M.GetValAsString = function(val, no_quotes, lang_spec)
     if val == vim.NIL then
-        return "null"
+        return lang_spec.symbols.null or "null"
     elseif val == vim.empty_dict() then
-        return "{}"
+        return lang_spec.symbols.tbl or "{}"
     elseif type(val) == "string" then
         if no_quotes then
             return utils.escape_string(val)
@@ -100,20 +105,24 @@ M.GetValAsString = function(val, no_quotes)
         return tostring(val)
     elseif type(val) == "table" then
         if vim.islist(val) then
-            return "[]"
+            return lang_spec.symbols.lst or "[]"
         else
-            return "{}"
+            return lang_spec.symbols.tbl or "{}"
         end
     end
 end
 
----Gets the length of the string representation of
----a json value.
----@param val any
+---Gets the length of the string representation of a value.
+---@param val any,
+---@param lang_spec LangSpec
 ---@return integer | nil
-M.GetLenOfValue = function(val)
+M.GetLenOfValue = function(val, lang_spec)
     if val == vim.NIL then
-        return 4
+        if lang_spec.symbols.null then
+            return string.len(lang_spec.symbols.null)
+        else
+            return 4
+        end
     elseif type(val) == "string" then
         return utils.utf8len(utils.escape_string(val)) + 2
     elseif type(val) == "number" then
@@ -124,8 +133,26 @@ M.GetLenOfValue = function(val)
         else
             return 5
         end
+    elseif val == vim.empty_dict() then
+        if lang_spec.symbols.tbl then
+            return string.len(lang_spec.symbols.lst)
+        else
+            return 2
+        end
     elseif type(val) == "table" then
-        return 2
+        if vim.islist(val) then
+            if lang_spec.symbols.tbl then
+                return string.len(lang_spec.symbols.lst)
+            else
+                return 2
+            end
+        else
+            if lang_spec.symbols.tbl then
+                return string.len(lang_spec.symbols.lst)
+            else
+                return 2
+            end
+        end
     end
 end
 
@@ -134,10 +161,11 @@ end
 ---@param max_len_left integer
 ---@param first boolean | nil
 ---@param origin Vec2 | nil
----@param json_obj table | nil
+---@param obj table | nil
 ---@param key_set any[] | nil
 ---@return TextLine
-M.BuildBoxCap = function(top, max_len_left, first, origin, json_obj, key_set)
+---@param lang_spec LangSpec
+M.BuildBoxCap = function(top, max_len_left, first, origin, obj, key_set, lang_spec)
     local left
     local right
     local splitter
@@ -149,7 +177,7 @@ M.BuildBoxCap = function(top, max_len_left, first, origin, json_obj, key_set)
             callbacks = { {
                 M.config.keymaps.link_backward,
                 function(opts)
-                    M.RenderGraph(opts.json_obj, opts.editor_buf, { opts.editor_buf })
+                    M.RenderGraph(opts.obj, opts.editor_buf, { opts.editor_buf }, lang_spec)
                     M.CursorToRoot()
                 end,
                 "View full graph",
@@ -171,7 +199,7 @@ M.BuildBoxCap = function(top, max_len_left, first, origin, json_obj, key_set)
                     M.config.keymaps.set_as_root,
                     function(opts)
                         ---@diagnostic disable-next-line: param-type-mismatch
-                        M.RenderGraph(json_obj, opts.editor_buf, key_set)
+                        M.RenderGraph(obj, opts.editor_buf, key_set, lang_spec)
                         M.CursorToRoot()
                     end,
                     "Set unit as root",
@@ -261,13 +289,14 @@ end
 ---Creates a text table representation of an object
 ---with callbacks and returns the top line number.
 ---OUTPUT WILL BE SENT TO OUT TABLE
----@param json_obj table
+---@param obj table
 ---@param out_table table
 ---@param layer_idx integer
 ---@param key_set any[]
 ---@param from_row integer | nil
 ---@return integer
-M.TableObject = function(json_obj, out_table, layer_idx, key_set, from_row)
+---@param lang_spec LangSpec
+M.TableObject = function(obj, out_table, layer_idx, key_set, from_row, lang_spec)
     if out_table[layer_idx] == nil then
         out_table[layer_idx] = { lines = 0, width = 0, boxes = {} }
     end
@@ -279,9 +308,9 @@ M.TableObject = function(json_obj, out_table, layer_idx, key_set, from_row)
     local text_lines = {}
     local connections = {}
 
-    for key, val in pairs(json_obj) do
-        max_len_left = math.max(max_len_left, M.GetLenOfValue(key))
-        max_len_right = math.max(max_len_right, M.GetLenOfValue(val))
+    for key, val in pairs(obj) do
+        max_len_left = math.max(max_len_left, M.GetLenOfValue(key, lang_spec))
+        max_len_right = math.max(max_len_right, M.GetLenOfValue(val, lang_spec))
     end
 
     layer.width = math.max(layer.width, max_len_left + max_len_right + 3)
@@ -290,12 +319,13 @@ M.TableObject = function(json_obj, out_table, layer_idx, key_set, from_row)
         max_len_left,
         layer_idx == 1,
         { layer_idx - 1, from_row },
-        json_obj,
-        key_set
+        obj,
+        key_set,
+        lang_spec
     )
 
     local line = 1
-    for key, val in pairs(json_obj) do
+    for key, val in pairs(obj) do
         local left_edge = edges.edge.LEFT_AND_RIGHT
         if line == M.config.max_lines + 1 then
             left_edge = "╪"
@@ -311,7 +341,8 @@ M.TableObject = function(json_obj, out_table, layer_idx, key_set, from_row)
                         M.config.keymaps.expand,
                         function(opts)
                             M.SetExpanded(key_set, true)
-                            M.RenderGraph(opts.render_info.shown_obj, opts.editor_buf, opts.render_info.shown_key_set)
+                            M.RenderGraph(opts.render_info.shown_obj, opts.editor_buf, opts.render_info.shown_key_set,
+                                lang_spec)
                         end,
                         "Expand unit",
                         M.config.keymap_priorities.expand,
@@ -328,21 +359,23 @@ M.TableObject = function(json_obj, out_table, layer_idx, key_set, from_row)
                     M.config.keymaps.collapse,
                     function(opts)
                         M.SetExpanded(key_set, false)
-                        M.RenderGraph(opts.render_info.shown_obj, opts.editor_buf, opts.render_info.shown_key_set)
+                        M.RenderGraph(opts.render_info.shown_obj, opts.editor_buf, opts.render_info.shown_key_set,
+                            lang_spec)
                     end,
                     "Collapse unit",
                     M.config.keymap_priorities.collapse,
                 }
             end
 
-            local string_key = M.GetValAsString(key, true)
+            local string_key = M.GetValAsString(key, true, lang_spec)
             local left = left_edge ..
                 string.rep(" ", max_len_left - #string_key) .. string_key .. edges.edge.LEFT_AND_RIGHT
-            local right = M.GetValAsString(val)
+            local right = M.GetValAsString(val, false, lang_spec)
 
             if right == "{}" or right == "[]" then
                 local from = layer.lines + #text_lines + 1
-                local to = M.TableObject(val, out_table, layer_idx + 1, utils.appended_table(key_set, key), from)
+                local to = M.TableObject(val, out_table, layer_idx + 1, utils.appended_table(key_set, key), from,
+                    lang_spec)
                 text_lines[#text_lines + 1] = {
                     left, "·", right .. edges.edge.CONNECTION,
                     {
@@ -368,7 +401,7 @@ M.TableObject = function(json_obj, out_table, layer_idx, key_set, from_row)
         end
     end
 
-    text_lines[#text_lines + 1] = M.BuildBoxCap(false, max_len_left)
+    text_lines[#text_lines + 1] = M.BuildBoxCap(false, max_len_left, nil, nil, nil, nil, lang_spec)
 
     layer.boxes[#layer.boxes + 1] = { connections = connections, text_lines = text_lines, top_line = layer.lines + 1 }
     layer.lines = layer.lines + #text_lines
@@ -376,10 +409,11 @@ M.TableObject = function(json_obj, out_table, layer_idx, key_set, from_row)
 end
 
 ---Apply highlighting to current buffer
-M.ApplyHighlighting = function()
-    vim.cmd([[highlight MyOperators guifg=#009900]])
+---@param lang_spec LangSpec
+M.ApplyHighlighting = function(lang_spec)
+    vim.cmd([[highlight GraphViewOperator guifg=#009900]])
     vim.api.nvim_set_hl(0, "JsonViewStatusline", { bg = "#1e1e2e", fg = "#ffffff", bold = true })
-    vim.api.nvim_set_hl(0, "JsonViewUnitHighlight", { link = "MyOperators" })
+    vim.api.nvim_set_hl(0, "JsonViewUnitHighlight", { link = "GraphViewOperator" })
 
     vim.cmd([[syntax match Special /\\[\\\"'abfnrtv]/ containedin=String]])
     vim.cmd([[syntax region String start=+"+ skip=+\\\\\\|\\"+ end=+"+ contains=StringEscape,@Spell]])
@@ -387,14 +421,18 @@ M.ApplyHighlighting = function()
     vim.cmd([[syn match Identifier /│\s*\zs\w\+\ze\s*│/ contains=@Spell]])
     vim.cmd([[syn match Identifier /╪\s*\zs\w\+\ze\s*│/ contains=@Spell]])
     vim.cmd("syn keyword Keyword null")
-    vim.cmd("syn match MyOperators \"[{}\\[\\]]\"")
-    vim.cmd("syn match MyOperators \"\\.\"")
+    vim.cmd("syn match GraphViewOperator \"[{}\\[\\]]\"")
+    vim.cmd("syn match GraphViewOperator \"\\.\"")
     vim.cmd([[syn match Comment "·"]])
     vim.cmd("syn keyword Boolean true false")
     vim.cmd("syn match Number \"[-+]\\=\\%(0\\|[1-9]\\d*\\)\\%(\\.\\d*\\)\\=\\%([eE][-+]\\=\\d\\+\\)\\=\"")
     vim.cmd("syn match Number \"[-+]\\=\\%(\\.\\d\\+\\)\\%([eE][-+]\\=\\d\\+\\)\\=\"")
     vim.cmd("syn match Number \"[-+]\\=0[xX]\\x*\"")
     vim.cmd("syn match Number \"[-+]\\=Infinity\\|NaN\"")
+
+    if lang_spec.highlight then
+        lang_spec.highlight()
+    end
 end
 
 ---Build connections for the given layer
@@ -571,20 +609,21 @@ M.BuildConnections = function(output_table)
     return connections
 end
 
----Renders the json_obj to the editor buf
----@param json_obj table
+---Renders the obj to the editor buf
+---@param obj table
 ---@param editor_buf integer
 ---@param key_set any[]
-M.RenderGraph = function(json_obj, editor_buf, key_set)
+---@param lang_spec LangSpec
+M.RenderGraph = function(obj, editor_buf, key_set, lang_spec)
     local text_output_table = {}
     local render_info = {
         line_callbacks = {},
-        shown_obj = json_obj,
+        shown_obj = obj,
         shown_key_set = key_set,
         row_unit_breaks = {}
     }
 
-    M.TableObject(json_obj, text_output_table, 1, key_set, nil)
+    M.TableObject(obj, text_output_table, 1, key_set, nil, lang_spec)
     local connections = M.BuildConnections(text_output_table)
 
     local output_lines = {}
@@ -676,7 +715,7 @@ M.RenderGraph = function(json_obj, editor_buf, key_set)
 
     vim.api.nvim_buf_set_option(editor_buf, 'modifiable', true)
     vim.api.nvim_buf_set_lines(editor_buf, 1, -1, false, output_lines)
-    M.ApplyHighlighting()
+    M.ApplyHighlighting(lang_spec)
 
     vim.api.nvim_buf_set_option(editor_buf, 'modifiable', false)
 
@@ -740,7 +779,7 @@ M.SplitView = function()
     vim.api.nvim_win_set_buf(new_win, editor_buf)
     vim.api.nvim_win_set_option(new_win, 'number', false)
     vim.api.nvim_win_set_option(new_win, 'relativenumber', false)
-    vim.api.nvim_buf_set_option(editor_buf, "filetype", M.plugin_name)
+    vim.api.nvim_buf_set_option(editor_buf, "filetype", consts.plugin_name)
     vim.api.nvim_buf_set_option(editor_buf, "cursorline", false)
 
     if M.config.disable_line_wrap then
@@ -805,11 +844,11 @@ end
 
 ---Cursor moved autocommand
 ---@param editor_buf integer
----@param json_obj table
+---@param obj table
 ---@param file string
 ---@param file_buf integer
 ---@param update_statusline function
-M.CursorMoved = function(editor_buf, json_obj, file, file_buf, update_statusline)
+M.CursorMoved = function(editor_buf, obj, file, file_buf, update_statusline)
     local pos = vim.api.nvim_win_get_cursor(0)
     if pos[1] == 1 then
         vim.api.nvim_win_set_cursor(0, { 2, pos[2] })
@@ -828,7 +867,7 @@ M.CursorMoved = function(editor_buf, json_obj, file, file_buf, update_statusline
     local enter_map
     local call_opts = {
         editor_buf = editor_buf,
-        json_obj = json_obj,
+        obj = obj,
         file = file,
         file_buf = file_buf,
         render_info = M.render_info[editor_buf],
@@ -883,7 +922,7 @@ M.CursorMoved = function(editor_buf, json_obj, file, file_buf, update_statusline
 
     table.sort(callback_keys, function(a, b) return a[3] >= b[3] end)
 
-    local statusline_text = M.plugin_name .. " (" .. M.config.keymaps.close_window .. "=Close Window)"
+    local statusline_text = consts.plugin_name .. " (" .. M.config.keymaps.close_window .. "=Close Window)"
 
     if enter_map then
         vim.keymap.set("n", M.config.keymaps.quick_action, function()
@@ -910,49 +949,49 @@ end
 
 ---Shows the JsonGraphView window
 ---@param file_buf integer
----@param json_obj table
+---@param obj table
 ---@param file string
-M.ShowJsonWindow = function(file_buf, json_obj, file)
+---@param lang_spec LangSpec
+M.ShowJsonWindow = function(file_buf, obj, file, lang_spec)
     local editor_buf, update_statusline = M.SplitView();
     vim.api.nvim_win_set_buf(0, editor_buf)
-    M.RenderGraph(json_obj, editor_buf, { editor_buf })
+    M.RenderGraph(obj, editor_buf, { editor_buf }, lang_spec)
     M.CursorToRoot()
 
     vim.api.nvim_create_autocmd({ "CursorMoved" }, {
         buffer = editor_buf,
-        callback = function() M.CursorMoved(editor_buf, json_obj, file, file_buf, update_statusline) end,
+        callback = function() M.CursorMoved(editor_buf, obj, file, file_buf, update_statusline) end,
     })
 end
 
 ---Opens the JsonGraphView on the specified buffer
 ---@param bufn integer
-M.OpenJsonViewOnBuf = function(bufn)
-    local lines = vim.api.nvim_buf_get_lines(bufn, 0, -1, false)
-    local json_text = table.concat(lines, "")
+---@param filetype string
+M.OpenJsonViewOnBuf = function(bufn, filetype)
+    local lang = langs.get(filetype)
 
-    local json_obj;
-    local valid = pcall(function()
-        json_obj = vim.json.decode(json_text)
-    end)
+    vim.print(lang)
+    if lang ~= nil then
+        local lines = vim.api.nvim_buf_get_lines(bufn, 0, -1, false)
+        local text = table.concat(lines, "\n")
+        local is_valid, lua_table = pcall(lang.decode, text)
 
-    if valid then
-        M.ShowJsonWindow(bufn, json_obj, vim.api.nvim_buf_get_name(0))
-    else
-        vim.notify("Json text is not valid", "ERROR")
+        if not is_valid then
+            vim.notify("Error parsing " .. filetype .. " text:\n" .. lua_table)
+            return
+        end
+
+        M.ShowJsonWindow(bufn, lua_table, vim.api.nvim_buf_get_name(0), lang)
     end
 end
 
 ---Opens the JsonGraphView on the current buffer
 M.OpenJsonView = function()
-    if vim.bo.filetype == "json" or M.config.accept_all_files then
-        local bufn = vim.api.nvim_buf_get_number(0)
-        M.OpenJsonViewOnBuf(bufn)
-    else
-        vim.notify("Buffer does not have filetype json; could not open" .. M.plugin_name .. ".")
-    end
+    local bufn = vim.api.nvim_buf_get_number(0)
+    M.OpenJsonViewOnBuf(bufn, vim.bo.filetype)
 end
 
-vim.api.nvim_create_user_command(M.plugin_name, M.OpenJsonView, {})
+vim.api.nvim_create_user_command(consts.plugin_name, M.OpenJsonView, {})
 
 ---Set up the plugin
 ---@param opts table

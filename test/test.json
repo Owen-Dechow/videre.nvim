@@ -7,7 +7,8 @@
             "data": 5,
             "string": "MY_\nSTRING",
             "array": [
-                "data"
+                "data",
+                null
             ]
         }
     },

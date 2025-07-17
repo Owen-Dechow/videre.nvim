@@ -1,0 +1,25 @@
+example:
+  test: "This is some test data"
+  empty_table: {}
+  empty_array: []
+  nested_table:
+    data: null
+    string: "MY_\nSTRING"
+    array:
+      - "data"
+
+long_array_example:
+  - "text_a"
+  - "text_b"
+  - "text_c"
+  - "text_d"
+  - "text_e"
+  - "text_f"
+  - "text_g"
+  - "text_h"
+  - 
+    - "FIRST"
+  - 
+    - "SECOND"
+  - 
+    - "THIRD"

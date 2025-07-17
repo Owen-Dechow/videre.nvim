@@ -41,6 +41,9 @@ using Neovim's terminal interface.
 ```lua
 return {
     "Owen-Dechow/nvim_json_graph_view",
+    dependencies = {
+        "Owen-Dechow/graph_view_yaml_parser_test", -- Optional: add YAML support
+    }
     opts = {
         round_units = false
     }
@@ -59,9 +62,6 @@ return {
         border = "double",
         zindex = 10
     },
-
-    -- Allow opening non .json files
-    accept_all_files = false,
 
     -- Number of lines before collapsing
     max_lines = 5,
