@@ -1,7 +1,7 @@
-local utils = require("json_graph_view.utils")
-local edges = require("json_graph_view.edges")
-local consts = require("json_graph_view.consts")
-local langs = require("json_graph_view.langs")
+local utils = require("videre.utils")
+local edges = require("videre.edges")
+local consts = require("videre.consts")
+local langs = require("videre.langs")
 
 local M = {
     expanded = {},
@@ -412,8 +412,8 @@ end
 ---@param lang_spec LangSpec
 M.ApplyHighlighting = function(lang_spec)
     vim.cmd([[highlight GraphViewOperator guifg=#009900]])
-    vim.api.nvim_set_hl(0, "JsonViewStatusline", { bg = "#1e1e2e", fg = "#ffffff", bold = true })
-    vim.api.nvim_set_hl(0, "JsonViewUnitHighlight", { link = "GraphViewOperator" })
+    vim.api.nvim_set_hl(0, "VidereStatusline", { bg = "#1e1e2e", fg = "#ffffff", bold = true })
+    vim.api.nvim_set_hl(0, "VidereUnitHighlight", { link = "GraphViewOperator" })
 
     vim.cmd([[syntax match Special /\\[\\\"'abfnrtv]/ containedin=String]])
     vim.cmd([[syntax region String start=+"+ skip=+\\\\\\|\\"+ end=+"+ contains=StringEscape,@Spell]])
@@ -806,10 +806,10 @@ M.SplitView = function()
         noautocmd = true,
         zindex = 50,
     })
-    vim.api.nvim_win_set_option(status_win, "winhl", "Normal:JsonViewStatusline")
+    vim.api.nvim_win_set_option(status_win, "winhl", "Normal:VidereStatusline")
 
     -- Cleanup autocommands
-    local augroup = vim.api.nvim_create_augroup("JsonViewStatus", { clear = false })
+    local augroup = vim.api.nvim_create_augroup("VidereStatus", { clear = false })
 
     vim.api.nvim_create_autocmd({ "WinClosed" }, {
         group = augroup,
@@ -884,13 +884,13 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, update_statusline)
                         row_idx == col.box.top_line
                         or row_idx == col.box.top_line + #col.box.text_lines - 1
                     then
-                        vim.api.nvim_buf_add_highlight(0, -1, "JsonViewUnitHighlight", row_idx, row_col_info.start,
+                        vim.api.nvim_buf_add_highlight(0, -1, "VidereUnitHighlight", row_idx, row_col_info.start,
                             row_col_info.start + row_col_info.width)
                     else
-                        vim.api.nvim_buf_add_highlight(0, -1, "JsonViewUnitHighlight", row_idx, row_col_info.start,
+                        vim.api.nvim_buf_add_highlight(0, -1, "VidereUnitHighlight", row_idx, row_col_info.start,
                             row_col_info.start + 1)
 
-                        vim.api.nvim_buf_add_highlight(0, -1, "JsonViewUnitHighlight", row_idx,
+                        vim.api.nvim_buf_add_highlight(0, -1, "VidereUnitHighlight", row_idx,
                             row_col_info.start + row_col_info.width - 3,
                             row_col_info.start + row_col_info.width)
                     end
@@ -947,12 +947,12 @@ M.CursorToRoot = function()
     vim.api.nvim_win_set_cursor(0, { 3, 3 })
 end
 
----Shows the JsonGraphView window
+---Shows the Videre window
 ---@param file_buf integer
 ---@param obj table
 ---@param file string
 ---@param lang_spec LangSpec
-M.ShowJsonWindow = function(file_buf, obj, file, lang_spec)
+M.ShowVidereWindow = function(file_buf, obj, file, lang_spec)
     local editor_buf, update_statusline = M.SplitView();
     vim.api.nvim_win_set_buf(0, editor_buf)
     M.RenderGraph(obj, editor_buf, { editor_buf }, lang_spec)
@@ -964,13 +964,12 @@ M.ShowJsonWindow = function(file_buf, obj, file, lang_spec)
     })
 end
 
----Opens the JsonGraphView on the specified buffer
+---Opens the Videre on the specified buffer
 ---@param bufn integer
 ---@param filetype string
-M.OpenJsonViewOnBuf = function(bufn, filetype)
+M.OpenVidereOnBuf = function(bufn, filetype)
     local lang = langs.get(filetype)
 
-    vim.print(lang)
     if lang ~= nil then
         local lines = vim.api.nvim_buf_get_lines(bufn, 0, -1, false)
         local text = table.concat(lines, "\n")
@@ -981,17 +980,30 @@ M.OpenJsonViewOnBuf = function(bufn, filetype)
             return
         end
 
-        M.ShowJsonWindow(bufn, lua_table, vim.api.nvim_buf_get_name(0), lang)
+        M.ShowVidereWindow(bufn, lua_table, vim.api.nvim_buf_get_name(0), lang)
     end
 end
 
----Opens the JsonGraphView on the current buffer
-M.OpenJsonView = function()
+---Opens the Videre Window on the current buffer
+M.OpenVidere = function()
     local bufn = vim.api.nvim_buf_get_number(0)
-    M.OpenJsonViewOnBuf(bufn, vim.bo.filetype)
+    M.OpenVidereOnBuf(bufn, vim.bo.filetype)
 end
 
-vim.api.nvim_create_user_command(consts.plugin_name, M.OpenJsonView, {})
+vim.api.nvim_create_user_command(consts.plugin_name, M.OpenVidere, {})
+
+vim.api.nvim_create_user_command(consts.former_plugin_name, function()
+    vim.notify(
+        "[DEPRECATION]\n" ..
+        "The :"
+        .. consts.former_plugin_name
+        .. " user command is deprecated. Use the new :"
+        .. consts.plugin_name
+        .. " command instead.",
+        "WARN"
+    )
+    M.OpenVidere()
+end, {})
 
 ---Set up the plugin
 ---@param opts table

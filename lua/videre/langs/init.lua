@@ -1,9 +1,9 @@
-local consts = require("json_graph_view.consts")
+local consts = require("videre.consts")
 
 local M = {
     langs = {
-        json = require("json_graph_view.langs.json"),
-        yaml = require("json_graph_view.langs.yaml")
+        json = require("videre.langs.json"),
+        yaml = require("videre.langs.yaml")
     }
 }
 

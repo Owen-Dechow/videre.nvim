@@ -5,11 +5,11 @@ terminal interface, does not have this luxury. While one can't create an
 interface like JSON Crack, it is possible to build a similar JSON explorer
 using Neovim's terminal interface.
 
-[Json Graph View Preview](https://github.com/user-attachments/assets/1b50ce8a-96c9-4d81-a06e-d5a266c1083b)
+[Videre Preview](https://github.com/user-attachments/assets/1b50ce8a-96c9-4d81-a06e-d5a266c1083b)
 
 ```
 ╭──────────────────┬──╮╭──┬──┬──────────────────────────────────╮╭──┬──────┬───────────╮
-│     JsonGraphView│[]├╯  │ 1│··········"This is a great plugin"││  │  user│·"will try"│
+│            Videre│[]├╯  │ 1│··········"This is a great plugin"││  │  user│·"will try"│
 │           Example│{}├╮  │ 2│·············"Look at this number"││  │isTrue│"100% True"│
 ╰──────────────────┴──╯│  │ 3│······························3467││  ╰──────┴───────────╯
                        │  │ 4│······························null││
@@ -114,9 +114,9 @@ return {
 
 ## 🚀 Running
 
-To open a graph view, go to a json file and run `:JsonGraphView`.
-The JsonGraphView window will open in a plit window to the right.
-The JsonGraphView buffer will have a filetype of `JsonGraphView`.
+To open a graph view, go to a json file and run `:Videre`.
+The Videre window will open in a plit window to the right.
+The Videre buffer will have a filetype of `Videre`.
 
 ## 🗂️ Different File Types
 
@@ -143,7 +143,7 @@ Add support for different filetypes such as YAML and TOML.
 
 ### ✏️ File Editing
 
-Add support for file editing directly form JsonGraphView.
+Add support for file editing directly form Videre.
 
 (Issue: [File Editing *#5*](https://github.com/Owen-Dechow/nvim_json_graph_view/issues/5))
 
