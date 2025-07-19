@@ -1,6 +1,6 @@
-# 📊 nvim_json_graph_view
+# 📊 videre.nvim
 
-Many editors have the option to view JSON files as a graph. Neovim, with a
+Many editors have the option to view JSON & YAML files as a graph. Neovim, with a
 terminal interface, does not have this luxury. While one can't create an
 interface like JSON Crack, it is possible to build a similar JSON explorer
 using Neovim's terminal interface.
