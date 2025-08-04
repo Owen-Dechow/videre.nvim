@@ -1,0 +1,28 @@
+[example]
+test = "This is some test data"
+
+# empty_table is an empty inline table
+empty_table = {}
+
+# empty_array is an empty array
+empty_array = []
+
+[example.nested_table]
+data = 5
+string = "MY_\\nSTRING"
+array = ["data", ""]
+
+# long_array_example is a top-level array
+long_array_example = [
+  "text_a",
+  "text_b",
+  "text_c",
+  "text_d",
+  "text_e",
+  "text_f",
+  "text_g",
+  "text_h",
+  ["FIRST"],
+  ["SECOND"],
+  ["THIRD"]
+]

@@ -5,6 +5,7 @@ local M = {
         json = require("videre.langs.json"),
         yaml = require("videre.langs.yaml"),
         xml = require("videre.langs.xml"),
+        toml = require("videre.langs.toml"),
     }
 }
 

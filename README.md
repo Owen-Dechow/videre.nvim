@@ -44,6 +44,7 @@ return {
     "Owen-Dechow/nvim_json_graph_view",
     dependencies = {
         "Owen-Dechow/graph_view_yaml_parser", -- Optional: add YAML support
+        "Owen-Dechow/graph_view_toml_parser", -- Optional: add TOML support
         "a-usr/xml2lua.nvim", -- Optional | Experimental: add XML support
     },
     opts = {
@@ -128,6 +129,7 @@ allow you to explore that filetype.
 Here are a list of supported parsers:
 * JSON: ***builtin***
 * YAML: [graph_view_yaml_parser](https://github.com/Owen-Dechow/graph_view_yaml_parser)
+* TOML: [graph_view_toml_parser](https://github.com/Owen-Dechow/graph_view_toml_parser)
 * XML **(Experimental)**: [xml2lua.nvim](https://github.com/a-usr/xml2lua.nvim)
 
 If you would like to add a parser please open an issue or contribute a PR.
