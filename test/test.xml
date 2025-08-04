@@ -1,0 +1,34 @@
+<root>
+  <example>
+    <test>This is some test data</test>
+    <empty_table/>
+    <empty_array/>
+    <nested_table>
+      <data>5</data>
+      <string>MY_STRING</string>
+      <array>
+        <item>data</item>
+        <item xsi:nil="true"/>
+      </array>
+    </nested_table>
+  </example>
+  <long_array_example>
+    <item>text_a</item>
+    <item>text_b</item>
+    <item>text_c</item>
+    <item>text_d</item>
+    <item>text_e</item>
+    <item>text_f</item>
+    <item>text_g</item>
+    <item>text_h</item>
+    <item>
+      <value>FIRST</value>
+    </item>
+    <item>
+      <value>SECOND</value>
+    </item>
+    <item>
+      <value>THIRD</value>
+    </item>
+  </long_array_example>
+</root>

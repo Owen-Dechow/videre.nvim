@@ -335,20 +335,7 @@ local function get_collapse_callback(line, key_set, lang_spec)
     }
 end
 
-local function set_connectable_text_line(
-    line,
-    key_set,
-    lang_spec,
-    key,
-    left_edge,
-    max_len_left,
-    val,
-    text_lines,
-    layer,
-    out_table,
-    layer_idx,
-    connections
-)
+local function get_text_line(line, key_set, lang_spec, key, left_edge, max_len_left, val, text_lines, layer, out_table)
     local collapse_callback = get_collapse_callback(line, key_set, lang_spec)
 
     local string_key = M.GetValAsString(key, true, lang_spec)
@@ -431,20 +418,7 @@ M.TableObject = function(obj, out_table, layer_idx, key_set, from_row, lang_spec
             break
         else
             line = line + 1
-            set_connectable_text_line(
-                line,
-                key_set,
-                lang_spec,
-                key,
-                left_edge,
-                max_len_left,
-                val,
-                text_lines,
-                layer,
-                out_table,
-                layer_idx,
-                connections
-            )
+            text_lines[#text_lines + 1] = get_text_line()
         end
     end
 
