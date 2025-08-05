@@ -78,6 +78,12 @@ return {
     -- Disable line wrapping for the graph buffer
     disable_line_wrap = true,
 
+    -- Change the string between the keymap and
+    --   description of callback within the statusline
+    -- FOR FONTS WITH LIGATURES TRY USING "꞊" INSTEAD OF "=". 
+    -- Other great options include "->", ": ", "=>", & " ".
+    keymap_desc_deliminator = "=",
+
     -- Set the priority of keymaps for the quick
     --   action keymap.
     keymap_priorities = {

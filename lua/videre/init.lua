@@ -28,6 +28,9 @@ local M = {
         ---@type boolean
         disable_line_wrap = true,
 
+        ---@type string
+        keymap_desc_deliminator = "=",
+
         ---@type table
         keymap_priorities = {
             ---@type integer
@@ -969,13 +972,14 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, update_statusline)
 
     table.sort(callback_keys, function(a, b) return a[3] >= b[3] end)
 
-    local statusline_text = consts.plugin_name .. " (" .. M.config.keymaps.close_window .. "=Close Window)"
+    local eq = M.config.keymap_desc_deliminator
+    local statusline_text = consts.plugin_name .. " (" .. M.config.keymaps.close_window .. eq .. "Close Window)"
 
     if enter_map then
         vim.keymap.set("n", M.config.keymaps.quick_action, function()
             enter_map[2](call_opts)
         end, { buffer = true })
-        statusline_text = statusline_text .. " (" .. M.config.keymaps.quick_action .. "=" .. enter_map[1] .. ")"
+        statusline_text = statusline_text .. " (" .. M.config.keymaps.quick_action .. eq .. enter_map[1] .. ")"
     else
         vim.keymap.set("n", M.config.keymaps.quick_action, function()
             vim.notify(M.config.keymaps.quick_action .. " is not valid at this location", "WARN")
@@ -983,7 +987,7 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, update_statusline)
     end
 
     for k, h in pairs(callback_keys) do
-        statusline_text = statusline_text .. " (" .. k .. "=" .. h[2] .. ")"
+        statusline_text = statusline_text .. " (" .. k .. eq .. h[2] .. ")"
     end
 
     update_statusline(statusline_text)
