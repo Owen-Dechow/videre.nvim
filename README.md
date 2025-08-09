@@ -78,6 +78,9 @@ return {
     -- Disable line wrapping for the graph buffer
     disable_line_wrap = true,
 
+    -- Set side scroll off for graph buffer
+    side_scrolloff = 20,
+
     -- Change the string between the keymap and
     --   description of callback within the statusline
     -- FOR FONTS WITH LIGATURES TRY USING "꞊" INSTEAD OF "=". 

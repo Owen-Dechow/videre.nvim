@@ -31,6 +31,9 @@ local M = {
         ---@type string
         keymap_desc_deliminator = "=",
 
+        ---@type integer | nil
+        side_scrolloff = 20,
+
         ---@type table
         keymap_priorities = {
             ---@type integer
@@ -827,6 +830,7 @@ M.SplitView = function()
     end
 
     vim.api.nvim_win_set_buf(new_win, editor_buf)
+    vim.api.nvim_buf_set_option(editor_buf, 'sidescrolloff', M.config.side_scrolloff)
     vim.api.nvim_win_set_option(new_win, 'number', false)
     vim.api.nvim_win_set_option(new_win, 'relativenumber', false)
     vim.api.nvim_buf_set_option(editor_buf, "filetype", consts.plugin_name)
@@ -855,6 +859,7 @@ M.SplitView = function()
         focusable = false,
         noautocmd = true,
         zindex = 50,
+        border = false,
     })
     vim.api.nvim_win_set_option(status_win, "winhl", "Normal:VidereStatusline")
 
