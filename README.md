@@ -122,6 +122,9 @@ return {
 
         -- Close the window
         close_window = "q"
+
+        -- Open the help menu
+        help = "g?",
     }
 }
 ```
