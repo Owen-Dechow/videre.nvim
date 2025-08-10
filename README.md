@@ -87,6 +87,9 @@ return {
     -- Other great options include "->", ": ", "=>", & " ".
     keymap_desc_deliminator = "=",
 
+    -- Character used to represent empty space
+    space_char = "·",
+
     -- Set the priority of keymaps for the quick
     --   action keymap.
     keymap_priorities = {
