@@ -890,7 +890,7 @@ M.SplitView = function()
         "n",
         M.config.keymaps.close_window,
         "<CMD>q<CR>",
-        { buffer = true, noremap = true, silent = true }
+        { buffer = true, noremap = true, silent = true, nowait = true }
     )
 
 
@@ -914,7 +914,7 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, update_statusline)
         if k ~= M.config.keymaps.close_window then
             vim.keymap.set("n", k, function()
                 vim.notify(k .. " is not valid at this location", "WARN")
-            end, { buffer = true })
+            end, { buffer = true, nowait = true })
         end
     end
 
@@ -969,7 +969,7 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, update_statusline)
                     end
 
                     callback_keys[callback[1]] = { fn, callback[3], callback[4] }
-                    vim.keymap.set("n", callback[1], fn, { buffer = true })
+                    vim.keymap.set("n", callback[1], fn, { buffer = true, nowait = true })
                 end
             end
         end
@@ -983,12 +983,12 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, update_statusline)
     if enter_map then
         vim.keymap.set("n", M.config.keymaps.quick_action, function()
             enter_map[2](call_opts)
-        end, { buffer = true })
+        end, { buffer = true, nowait = true })
         statusline_text = statusline_text .. " (" .. M.config.keymaps.quick_action .. eq .. enter_map[1] .. ")"
     else
         vim.keymap.set("n", M.config.keymaps.quick_action, function()
             vim.notify(M.config.keymaps.quick_action .. " is not valid at this location", "WARN")
-        end, { buffer = true })
+        end, { buffer = true, nowait = true })
     end
 
     for k, h in pairs(callback_keys) do
