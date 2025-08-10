@@ -63,4 +63,16 @@ function M.update_table(with, to)
     end
 end
 
+---Set a keymap for the buffer
+---@param keymap string
+---@param fn string | function
+function M.keymap(keymap, fn)
+    vim.keymap.set(
+        "n",
+        keymap,
+        fn,
+        { buffer = true, noremap = true, silent = true, nowait = true }
+    )
+end
+
 return M

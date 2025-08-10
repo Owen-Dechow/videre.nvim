@@ -76,7 +76,10 @@ local M = {
             quick_action = "<CR>",
 
             ---@type string
-            close_window = "q"
+            close_window = "q",
+
+            ---@type string
+            help = "g?",
         }
     },
     render_info = {},
@@ -466,7 +469,8 @@ end
 
 ---Apply highlighting to current buffer
 ---@param lang_spec LangSpec
-M.ApplyHighlighting = function(lang_spec)
+---@param disable_dot boolean | nil
+M.ApplyHighlighting = function(lang_spec, disable_dot)
     vim.cmd([[highlight GraphViewOperator guifg=#009900]])
     vim.api.nvim_set_hl(0, "VidereStatusline", { bg = "#1e1e2e", fg = "#ffffff", bold = true })
     vim.api.nvim_set_hl(0, "VidereUnitHighlight", { link = "GraphViewOperator" })
@@ -478,7 +482,11 @@ M.ApplyHighlighting = function(lang_spec)
     vim.cmd([[syn match Identifier /╪\s*\zs\w\+\ze\s*│/ contains=@Spell]])
     vim.cmd("syn keyword Keyword null")
     vim.cmd("syn match GraphViewOperator \"[{}\\[\\]]\"")
-    vim.cmd("syn match GraphViewOperator \"\\.\"")
+
+    if not disable_dot then
+        vim.cmd("syn match GraphViewOperator \"\\.\"")
+    end
+
     vim.cmd([[syn match Comment "]] .. M.config.space_char .. [["]])
     vim.cmd("syn keyword Boolean true false")
     vim.cmd("syn match Number \"[-+]\\=\\%(0\\|[1-9]\\d*\\)\\%(\\.\\d*\\)\\=\\%([eE][-+]\\=\\d\\+\\)\\=\"")
@@ -778,6 +786,79 @@ M.RenderGraph = function(obj, editor_buf, key_set, lang_spec)
     M.render_info[editor_buf] = render_info
 end
 
+M.HelpMenu = function()
+    local buf = vim.api.nvim_create_buf(false, true)
+    local width = math.floor(vim.o.columns * 0.6)
+    local height = math.floor(vim.o.lines * 0.4)
+    local row = math.floor((vim.o.lines - height) / 2)
+    local col = math.floor((vim.o.columns - width) / 2)
+
+    local opts = {
+        style = "minimal",
+        relative = "editor",
+        width = width,
+        height = height,
+        row = row,
+        col = col,
+        border = "rounded",
+    }
+
+    local win = vim.api.nvim_open_win(buf, true, opts)
+
+    local function C(text)
+        local text_width = utils.utf8len(text)
+        local diff = width - text_width
+        local pad = math.max(0, math.floor(diff / 2))
+        return string.rep(" ", pad) .. text
+    end
+
+    local function CC(texta, textb)
+        local target_width = 50
+        local listing = texta .. ": " .. textb
+        local listing_len = utils.utf8len(listing)
+        if listing_len < target_width then
+            local diff = target_width - listing_len
+            listing = texta .. ": " .. string.rep(M.config.space_char, diff) .. textb
+        end
+
+        return C(listing)
+    end
+
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+        C "Videre Nvim | Help",
+        C("Press <ESC>, "
+            .. M.config.keymaps.close_window
+            .. ", or "
+            .. M.config.keymaps.help
+            .. " to close."),
+        "",
+        CC(M.config.keymaps.close_window, "Close the Videre window."),
+        CC(M.config.keymaps.help, "Open the help window."),
+        CC(M.config.keymaps.quick_action, "Fire the highest priority action available."),
+        CC(M.config.keymaps.collapse, "Collapse a unit."),
+        CC(M.config.keymaps.expand, "Expand a unit."),
+        CC(M.config.keymaps.link_forward, "Jump to connected unit."),
+        CC(M.config.keymaps.link_backward, "Jump to parent unit."),
+        CC(M.config.keymaps.set_as_root, "Set unit as root unit."),
+        "",
+        C "Data explorer using Neovim's terminal interface.",
+        C "Created by Owen Dechow with help from many amazing",
+        C "contributors.",
+
+    })
+    M.ApplyHighlighting({}, true)
+
+    local function close_win()
+        if vim.api.nvim_win_is_valid(win) then
+            vim.api.nvim_win_close(win, true)
+        end
+    end
+
+    utils.keymap(M.config.keymaps.close_window, close_win)
+    utils.keymap(M.config.keymaps.help, close_win)
+    utils.keymap("<ESC>", close_win)
+end
+
 ---Creates a window split. Returns the buffer for the window
 ---and a callback to update the status line.
 ---@return integer
@@ -890,13 +971,8 @@ M.SplitView = function()
         end
     })
 
-    vim.keymap.set(
-        "n",
-        M.config.keymaps.close_window,
-        "<CMD>q<CR>",
-        { buffer = true, noremap = true, silent = true, nowait = true }
-    )
-
+    utils.keymap(M.config.keymaps.close_window, "<CMD>q<CR>")
+    utils.keymap(M.config.keymaps.help, M.HelpMenu)
 
     return editor_buf, update_statusline
 end
@@ -914,11 +990,12 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, update_statusline)
         pos[1] = 2
     end
 
+    local ignored_remaps = { [M.config.keymaps.close_window] = true, [M.config.keymaps.help] = true }
     for _, k in pairs(M.config.keymaps) do
-        if k ~= M.config.keymaps.close_window then
-            vim.keymap.set("n", k, function()
+        if not ignored_remaps[k] then
+            utils.keymap(k, function()
                 vim.notify(k .. " is not valid at this location", "WARN")
-            end, { buffer = true, nowait = true })
+            end)
         end
     end
 
@@ -973,7 +1050,7 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, update_statusline)
                     end
 
                     callback_keys[callback[1]] = { fn, callback[3], callback[4] }
-                    vim.keymap.set("n", callback[1], fn, { buffer = true, nowait = true })
+                    utils.keymap(callback[1], fn)
                 end
             end
         end
@@ -982,17 +1059,19 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, update_statusline)
     table.sort(callback_keys, function(a, b) return a[3] >= b[3] end)
 
     local eq = M.config.keymap_desc_deliminator
-    local statusline_text = consts.plugin_name .. " (" .. M.config.keymaps.close_window .. eq .. "Close Window)"
+    local statusline_text = consts.plugin_name
+        .. " (" .. M.config.keymaps.close_window .. eq .. "Close Window)"
+        .. " (" .. M.config.keymaps.help .. eq .. "Open Help)"
 
     if enter_map then
-        vim.keymap.set("n", M.config.keymaps.quick_action, function()
+        utils.keymap(M.config.keymaps.quick_action, function()
             enter_map[2](call_opts)
-        end, { buffer = true, nowait = true })
+        end)
         statusline_text = statusline_text .. " (" .. M.config.keymaps.quick_action .. eq .. enter_map[1] .. ")"
     else
-        vim.keymap.set("n", M.config.keymaps.quick_action, function()
+        utils.keymap(M.config.keymaps.quick_action, function()
             vim.notify(M.config.keymaps.quick_action .. " is not valid at this location", "WARN")
-        end, { buffer = true, nowait = true })
+        end)
     end
 
     for k, h in pairs(callback_keys) do
