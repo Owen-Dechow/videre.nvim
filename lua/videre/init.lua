@@ -31,6 +31,9 @@ local M = {
         ---@type string
         keymap_desc_deliminator = "=",
 
+        ---@type string
+        space_char = "·",
+
         ---@type integer | nil
         side_scrolloff = 20,
 
@@ -370,7 +373,7 @@ local function set_connectable_text_line(
         local to = M.TableObject(val, out_table, layer_idx + 1, utils.appended_table(key_set, key), from,
             lang_spec)
         text_lines[#text_lines + 1] = {
-            left, "·", right .. edges.edge.CONNECTION,
+            left, M.config.space_char, right .. edges.edge.CONNECTION,
             {
                 {
                     M.config.keymaps.link_forward,
@@ -389,7 +392,7 @@ local function set_connectable_text_line(
             to = to
         }
     else
-        text_lines[#text_lines + 1] = { left, "·", right .. edges.edge.LEFT_AND_RIGHT, { collapse_callback } }
+        text_lines[#text_lines + 1] = { left, M.config.space_char, right .. edges.edge.LEFT_AND_RIGHT, { collapse_callback } }
     end
 end
 
@@ -476,7 +479,7 @@ M.ApplyHighlighting = function(lang_spec)
     vim.cmd("syn keyword Keyword null")
     vim.cmd("syn match GraphViewOperator \"[{}\\[\\]]\"")
     vim.cmd("syn match GraphViewOperator \"\\.\"")
-    vim.cmd([[syn match Comment "·"]])
+    vim.cmd([[syn match Comment ]] .. M.config.space_char)
     vim.cmd("syn keyword Boolean true false")
     vim.cmd("syn match Number \"[-+]\\=\\%(0\\|[1-9]\\d*\\)\\%(\\.\\d*\\)\\=\\%([eE][-+]\\=\\d\\+\\)\\=\"")
     vim.cmd("syn match Number \"[-+]\\=\\%(\\.\\d\\+\\)\\%([eE][-+]\\=\\d\\+\\)\\=\"")
