@@ -835,6 +835,7 @@ M.SplitView = function()
     vim.api.nvim_win_set_option(new_win, 'relativenumber', false)
     vim.api.nvim_buf_set_option(editor_buf, "filetype", consts.plugin_name)
     vim.api.nvim_buf_set_option(editor_buf, "cursorline", false)
+    vim.api.nvim_buf_set_option(editor_buf, "colorcolumn", "")
 
     if M.config.disable_line_wrap then
         vim.api.nvim_buf_set_option(editor_buf, "wrap", false)
