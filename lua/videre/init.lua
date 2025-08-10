@@ -836,6 +836,7 @@ M.SplitView = function()
     vim.api.nvim_buf_set_option(editor_buf, 'sidescrolloff', M.config.side_scrolloff)
     vim.api.nvim_win_set_option(new_win, 'number', false)
     vim.api.nvim_win_set_option(new_win, 'relativenumber', false)
+    vim.api.nvim_win_set_option(new_win, "colorcolumn", "")
     vim.api.nvim_buf_set_option(editor_buf, "filetype", consts.plugin_name)
     vim.api.nvim_buf_set_option(editor_buf, "cursorline", false)
 
