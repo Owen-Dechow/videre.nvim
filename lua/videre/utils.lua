@@ -1,5 +1,11 @@
 local M = {}
 
+---Returns the config
+---@return table
+function M.cfg()
+    return require("videre").config
+end
+
 ---Gets the number of chars in the string. Length
 ---of string in chars not bytes
 ---@param str any
