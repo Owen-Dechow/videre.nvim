@@ -129,7 +129,7 @@ require('videre').setup {
         link_forward = "L",
 
         -- Jump back to unit parent
-        link_backward = "B",
+        link_backward = "H",
 
         -- Set current unit as root
         set_as_root = "R",

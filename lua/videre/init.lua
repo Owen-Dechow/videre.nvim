@@ -67,7 +67,7 @@ local M = {
             link_forward = "L",
 
             ---@type string
-            link_backward = "B",
+            link_backward = "H",
 
             ---@type string
             set_as_root = "R",
