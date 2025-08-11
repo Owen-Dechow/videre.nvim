@@ -37,6 +37,9 @@ local M = {
         ---@type integer | nil
         side_scrolloff = 20,
 
+        ---@type boolean
+        simple_statusline = true,
+
         ---@type table
         keymap_priorities = {
             ---@type integer

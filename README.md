@@ -49,7 +49,10 @@ return {
         "a-usr/xml2lua.nvim", -- Optional | Experimental: add XML support
     },
     opts = {
-        round_units = false
+        round_units = false,
+        simple_statusline = false, -- If you are just starting out with Videre,
+                                   --   setting this to `false` will give you
+                                   --   descriptions of available keymaps.
     }
 }
 ```
@@ -65,7 +68,10 @@ vim.pack.add {
 }
 
 require('videre').setup {
-    round_units = false
+    round_units = false,
+    simple_statusline = false, -- If you are just starting out with Videre,
+                               --   setting this to `false` will give you
+                               --   descriptions of available keymaps.
 }
 ```
 
@@ -106,6 +112,10 @@ require('videre').setup {
 
     -- Character used to represent empty space
     space_char = "·",
+
+    -- Use simple statusline instead of providing
+    --   descriptions of keymaps.
+    simple_statusline = true,   
 
     -- Set the priority of keymaps for the quick
     --   action keymap.

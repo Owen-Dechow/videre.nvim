@@ -4,13 +4,59 @@ local cfg = utils.cfg
 
 local M = {}
 
+local function full_statusline(callback_keys, enter_map)
+    local eq = cfg().keymap_desc_deliminator
+    local statusline_text = consts.plugin_name
+        .. " (" .. cfg().keymaps.close_window .. eq .. "Close Window)"
+        .. " (" .. cfg().keymaps.help .. eq .. "Open Help)"
+
+    if enter_map then
+        statusline_text = statusline_text .. " (" .. cfg().keymaps.quick_action .. eq .. enter_map[1] .. ")"
+    end
+
+    for k, h in pairs(callback_keys) do
+        statusline_text = statusline_text .. " (" .. k .. eq .. h[2] .. ")"
+    end
+
+    return statusline_text
+end
+
+local function simple_statusline(callback_keys, enter_map)
+    local statusline_text = consts.plugin_name
+        .. " [" .. cfg().keymaps.close_window
+        .. ", " .. cfg().keymaps.help
+
+    for k, _ in pairs(callback_keys) do
+        statusline_text = statusline_text .. ", " .. k
+    end
+
+    statusline_text = statusline_text .. "] "
+
+    if enter_map then
+        local eq = cfg().keymap_desc_deliminator
+        statusline_text = statusline_text .. cfg().keymaps.quick_action .. eq .. enter_map[1]
+    end
+
+    return statusline_text
+end
+
+local function update_statusline(set_text, callback_keys, enter_map)
+    table.sort(callback_keys, function(a, b) return a[3] >= b[3] end)
+
+    if cfg().simple_statusline then
+        set_text(simple_statusline(callback_keys, enter_map))
+    else
+        set_text(full_statusline(callback_keys, enter_map))
+    end
+end
+
 ---Cursor moved autocommand
 ---@param editor_buf integer
 ---@param obj table
 ---@param file string
 ---@param file_buf integer
----@param update_statusline function
-M.CursorMoved = function(editor_buf, obj, file, file_buf, update_statusline)
+---@param set_statusline_text function
+M.CursorMoved = function(editor_buf, obj, file, file_buf, set_statusline_text)
     local pos = vim.api.nvim_win_get_cursor(0)
     if pos[1] == 1 then
         vim.api.nvim_win_set_cursor(0, { 2, pos[2] })
@@ -84,29 +130,17 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, update_statusline)
         end
     end
 
-    table.sort(callback_keys, function(a, b) return a[3] >= b[3] end)
-
-    local eq = cfg().keymap_desc_deliminator
-    local statusline_text = consts.plugin_name
-        .. " (" .. cfg().keymaps.close_window .. eq .. "Close Window)"
-        .. " (" .. cfg().keymaps.help .. eq .. "Open Help)"
-
     if enter_map then
         utils.keymap(cfg().keymaps.quick_action, function()
             enter_map[2](call_opts)
         end)
-        statusline_text = statusline_text .. " (" .. cfg().keymaps.quick_action .. eq .. enter_map[1] .. ")"
     else
         utils.keymap(cfg().keymaps.quick_action, function()
             vim.notify(cfg().keymaps.quick_action .. " is not valid at this location", "WARN")
         end)
     end
 
-    for k, h in pairs(callback_keys) do
-        statusline_text = statusline_text .. " (" .. k .. eq .. h[2] .. ")"
-    end
-
-    update_statusline(statusline_text)
+    update_statusline(set_statusline_text, callback_keys, enter_map)
 end
 
 return M
