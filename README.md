@@ -110,11 +110,11 @@ require('videre').setup {
     -- Set the priority of keymaps for the quick
     --   action keymap.
     keymap_priorities = {
-        expand = 4,
-        collapse = 2,
-        link_forward = 3,
-        link_backward = 3,
-        set_as_root = 1,
+            expand = 5,
+            link_forward = 4,
+            link_backward = 3,
+            collapse = 2,
+            set_as_root = 1,
     },
 
     -- Set the keys actions will be mapped to

@@ -40,10 +40,10 @@ local M = {
         ---@type table
         keymap_priorities = {
             ---@type integer
-            expand = 4,
+            expand = 5,
 
             ---@type integer
-            link_forward = 3,
+            link_forward = 4,
 
             ---@type integer
             link_backward = 3,
@@ -168,6 +168,30 @@ M.GetLenOfValue = function(val, lang_spec)
     end
 end
 
+local function get_back_callback(first, lang_spec, origin)
+    if first then
+        return {
+            M.config.keymaps.link_backward,
+            function(opts)
+                M.RenderGraph(opts.obj, opts.editor_buf, { opts.editor_buf }, lang_spec)
+                M.CursorToRoot()
+            end,
+            "View full graph",
+            M.config.keymap_priorities.link_backward,
+        }
+    else
+        return {
+            M.config.keymaps.link_backward,
+            function(opts)
+                ---@diagnostic disable-next-line: need-check-nil
+                M.JumpToLink(origin[1], origin[2], opts.render_info, true)
+            end,
+            "Jump to parent unit",
+            M.config.keymap_priorities.link_backward,
+        }
+    end
+end
+
 ---Builds the top or bottom of a graph unit.
 ---@param top boolean
 ---@param max_len_left integer
@@ -186,27 +210,11 @@ M.BuildBoxCap = function(top, max_len_left, first, origin, obj, key_set, lang_sp
     if top then
         if first then
             left = edges.edge.TOP_LEFT_ROOT
-            callbacks = { {
-                M.config.keymaps.link_backward,
-                function(opts)
-                    M.RenderGraph(opts.obj, opts.editor_buf, { opts.editor_buf }, lang_spec)
-                    M.CursorToRoot()
-                end,
-                "View full graph",
-                M.config.keymap_priorities.link_backward,
-            } }
+            callbacks = { get_back_callback(first, lang_spec, origin) }
         else
             left = edges.edge.TOP_LEFT
             callbacks = {
-                {
-                    M.config.keymaps.link_backward,
-                    function(opts)
-                        ---@diagnostic disable-next-line: need-check-nil
-                        M.JumpToLink(origin[1], origin[2], opts.render_info, true)
-                    end,
-                    "Jump to parent unit",
-                    M.config.keymap_priorities.link_backward,
-                },
+                get_back_callback(first, lang_spec, origin),
                 {
                     M.config.keymaps.set_as_root,
                     function(opts)
@@ -226,6 +234,7 @@ M.BuildBoxCap = function(top, max_len_left, first, origin, obj, key_set, lang_sp
         left = edges.edge.BOTTOM_LEFT
         right = edges.edge.BOTTOM_RIGHT
         splitter = edges.edge.BOTTOM_SPLITTER
+        callbacks = { get_back_callback(first, lang_spec, origin) }
     end
 
     return {
@@ -288,14 +297,17 @@ end
 ---@param layer integer
 ---@param row integer
 ---@param render_info table
----@param jump_to_word boolean
-M.JumpToLink = function(layer, row, render_info, jump_to_word)
-    local col = render_info.row_unit_breaks[row][layer]
-    vim.api.nvim_win_set_cursor(0, { row + 1, col.start })
-
-    if jump_to_word then
-        vim.cmd("call search('\\S')")
+---@param backward boolean
+M.JumpToLink = function(layer, row, render_info, backward)
+    if backward then
+        local col = render_info.row_unit_breaks[row][layer]
+        vim.api.nvim_win_set_cursor(0, { row + 1, col.start })
+    else
+        local col = render_info.row_unit_breaks[row + 1][layer]
+        vim.api.nvim_win_set_cursor(0, { row + 2, col.start })
     end
+
+    vim.cmd("call search('\\S')")
 end
 
 local function get_max_len(obj, lang_spec)
@@ -359,9 +371,12 @@ local function set_connectable_text_line(
     layer,
     out_table,
     layer_idx,
-    connections
+    connections,
+    origin,
+    first
 )
     local collapse_callback = get_collapse_callback(line, key_set, lang_spec)
+    local back_callback = get_back_callback(first, lang_spec, origin)
 
     local string_key = M.GetValAsString(key, true, lang_spec)
     local left = left_edge
@@ -386,7 +401,7 @@ local function set_connectable_text_line(
                     "Jump to linked unit",
                     M.config.keymap_priorities.link_forward,
                 },
-                collapse_callback
+                collapse_callback, back_callback
             }
         }
 
@@ -395,7 +410,7 @@ local function set_connectable_text_line(
             to = to
         }
     else
-        text_lines[#text_lines + 1] = { left, M.config.space_char, right .. edges.edge.LEFT_AND_RIGHT, { collapse_callback } }
+        text_lines[#text_lines + 1] = { left, M.config.space_char, right .. edges.edge.LEFT_AND_RIGHT, { collapse_callback, back_callback } }
     end
 end
 
@@ -455,12 +470,22 @@ M.TableObject = function(obj, out_table, layer_idx, key_set, from_row, lang_spec
                 layer,
                 out_table,
                 layer_idx,
-                connections
+                connections,
+                { layer_idx - 1, from_row },
+                layer_idx == 1
             )
         end
     end
 
-    text_lines[#text_lines + 1] = M.BuildBoxCap(false, max_len_left, nil, nil, nil, nil, lang_spec)
+    text_lines[#text_lines + 1] = M.BuildBoxCap(
+        false,
+        max_len_left,
+        layer_idx == 1,
+        { layer_idx - 1, from_row },
+        obj,
+        key_set,
+        lang_spec
+    )
 
     layer.boxes[#layer.boxes + 1] = { connections = connections, text_lines = text_lines, top_line = layer.lines + 1 }
     layer.lines = layer.lines + #text_lines
