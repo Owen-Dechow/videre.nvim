@@ -13,7 +13,8 @@ M.RenderGraph = function(obj, editor_buf, key_set, lang_spec)
         line_callbacks = {},
         shown_obj = obj,
         shown_key_set = key_set,
-        row_unit_breaks = {}
+        row_unit_breaks = {},
+        text_output_table = text_output_table,
     }
 
     require("videre.table_objs").TableObject(obj, text_output_table, 1, key_set, nil, lang_spec)

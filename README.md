@@ -123,6 +123,8 @@ require('videre').setup {
             expand = 5,
             link_forward = 4,
             link_backward = 3,
+            link_down = 1,
+            link_up = 1,
             collapse = 2,
             set_as_root = 1,
     },
@@ -140,6 +142,12 @@ require('videre').setup {
 
         -- Jump back to unit parent
         link_backward = "H",
+
+        -- Jump down a unit
+        link_down = "J",
+
+        -- Jump up a unit
+        link_up = "K",
 
         -- Set current unit as root
         set_as_root = "R",

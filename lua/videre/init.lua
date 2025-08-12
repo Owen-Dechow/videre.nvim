@@ -52,6 +52,12 @@ local M = {
             link_backward = 3,
 
             ---@type integer
+            link_down = 1,
+
+            ---@type integer
+            link_up = 1,
+
+            ---@type integer
             collapse = 2,
 
             ---@type integer
@@ -73,6 +79,12 @@ local M = {
             link_backward = "H",
 
             ---@type string
+            link_down = "J",
+
+            ---@type string
+            link_up = "K",
+
+            ---@type string
             set_as_root = "R",
 
             ---@type string
@@ -91,6 +103,13 @@ local M = {
 ---@alias Vec2 { [1]: integer, [2]: integer }
 ---@alias Callback {[1]: string, [2]: function}
 ---@alias TextLine { [1]: string, [2]: string, [3]: string, [4]: Callback[]}
+
+---@alias RenderInfo {
+---line_callbacks:table,
+---shown_obj: table,
+---shown_key_set: table,
+---row_unit_breaks: table,
+---text_output_table: table}
 
 ---@alias LangSpec {
 ---highlight: function|nil,

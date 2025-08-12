@@ -38,13 +38,35 @@ local function get_collapsed_line(left_edge, key_set, lang_spec)
                 cfg().keymaps.expand,
                 function(opts)
                     require("videre.expanding").SetExpanded(key_set, true)
-                    require("videre.rendering").RenderGraph(opts.render_info.shown_obj, opts.editor_buf, opts.render_info.shown_key_set,
+                    require("videre.rendering").RenderGraph(opts.render_info.shown_obj, opts.editor_buf,
+                        opts.render_info.shown_key_set,
                         lang_spec)
                 end,
                 "Expand unit",
                 cfg().keymap_priorities.expand,
             }
         }
+    }
+end
+
+local function get_vertical_jump_callbacks(layer_idx, box_idx)
+    local link_jumping = require("videre.link_jumping")
+    return {
+        cfg().keymaps.link_down,
+        function(opts)
+            link_jumping.JumpVertical(layer_idx, box_idx + 1, opts.render_info)
+        end,
+        "Jump down one unit",
+        cfg().keymap_priorities.link_down,
+        predicate = link_jumping.GetJumpVerticalPredicate(layer_idx, box_idx + 1)
+    }, {
+        cfg().keymaps.link_up,
+        function(opts)
+            link_jumping.JumpVertical(layer_idx, box_idx - 1, opts.render_info)
+        end,
+        "Jump up one unit",
+        cfg().keymap_priorities.link_up,
+        predicate = link_jumping.GetJumpVerticalPredicate(layer_idx, box_idx - 1)
     }
 end
 
@@ -57,7 +79,8 @@ local function get_collapse_callback(line, key_set, lang_spec)
         cfg().keymaps.collapse,
         function(opts)
             require("videre.expanding").SetExpanded(key_set, false)
-            require("videre.rendering").RenderGraph(opts.render_info.shown_obj, opts.editor_buf, opts.render_info.shown_key_set,
+            require("videre.rendering").RenderGraph(opts.render_info.shown_obj, opts.editor_buf,
+                opts.render_info.shown_key_set,
                 lang_spec)
         end,
         "Collapse unit",
@@ -79,10 +102,12 @@ local function set_connectable_text_line(
     layer_idx,
     connections,
     origin,
-    first
+    first,
+    box_idx
 )
     local collapse_callback = get_collapse_callback(line, key_set, lang_spec)
     local back_callback = get_back_callback(first, lang_spec, origin)
+    local jump_down_callback, jump_up_callback = get_vertical_jump_callbacks(layer_idx, box_idx)
 
     local string_key = require("videre.converters").GetValAsString(key, true, lang_spec)
     local left = left_edge
@@ -107,7 +132,7 @@ local function set_connectable_text_line(
                     "Jump to linked unit",
                     cfg().keymap_priorities.link_forward,
                 },
-                collapse_callback, back_callback
+                collapse_callback, back_callback, jump_down_callback, jump_up_callback
             }
         }
 
@@ -116,7 +141,11 @@ local function set_connectable_text_line(
             to = to
         }
     else
-        text_lines[#text_lines + 1] = { left, cfg().space_char, right .. edges.edge.LEFT_AND_RIGHT, { collapse_callback, back_callback } }
+        text_lines[#text_lines + 1] = {
+            left,
+            cfg().space_char, right .. edges.edge.LEFT_AND_RIGHT,
+            { collapse_callback, back_callback, jump_down_callback, jump_up_callback }
+        }
     end
 end
 
@@ -139,18 +168,27 @@ end
 ---@param origin Vec2 | nil
 ---@param obj table | nil
 ---@param key_set any[] | nil
----@return TextLine
 ---@param lang_spec LangSpec
-local function build_cap(top, max_len_left, first, origin, obj, key_set, lang_spec)
+---@param layer_idx integer
+---@param unit_idx integer
+---@return TextLine
+local function build_cap(top, max_len_left, first, origin, obj, key_set, lang_spec, layer_idx, unit_idx)
     local left
     local right
     local splitter
     local callbacks
 
+    local jump_down_callback, jump_up_callback = get_vertical_jump_callbacks(
+        layer_idx, unit_idx)
+
     if top then
         if first then
             left = edges.edge.TOP_LEFT_ROOT
-            callbacks = { get_back_callback(first, lang_spec, origin) }
+            callbacks = {
+                get_back_callback(first, lang_spec, origin),
+                jump_down_callback,
+                jump_up_callback
+            }
         else
             left = edges.edge.TOP_LEFT
             callbacks = {
@@ -164,7 +202,9 @@ local function build_cap(top, max_len_left, first, origin, obj, key_set, lang_sp
                     end,
                     "Set unit as root",
                     cfg().keymap_priorities.set_as_root,
-                }
+                },
+                jump_down_callback,
+                jump_up_callback,
             }
         end
 
@@ -174,7 +214,11 @@ local function build_cap(top, max_len_left, first, origin, obj, key_set, lang_sp
         left = edges.edge.BOTTOM_LEFT
         right = edges.edge.BOTTOM_RIGHT
         splitter = edges.edge.BOTTOM_SPLITTER
-        callbacks = { get_back_callback(first, lang_spec, origin) }
+        callbacks = {
+            get_back_callback(first, lang_spec, origin),
+            jump_down_callback,
+            jump_up_callback,
+        }
     end
 
     return {
@@ -199,7 +243,9 @@ M.TableObject = function(obj, out_table, layer_idx, key_set, from_row, lang_spec
     if out_table[layer_idx] == nil then
         out_table[layer_idx] = { lines = 0, width = 0, boxes = {} }
     end
+
     local layer = out_table[layer_idx]
+    local box_idx = #layer.boxes + 1
 
     local max_len_left, max_len_right = get_max_len(obj, lang_spec)
     local text_lines = {}
@@ -214,7 +260,9 @@ M.TableObject = function(obj, out_table, layer_idx, key_set, from_row, lang_spec
         { layer_idx - 1, from_row },
         obj,
         key_set,
-        lang_spec
+        lang_spec,
+        layer_idx,
+        box_idx
     )
 
     local line = 1
@@ -243,7 +291,8 @@ M.TableObject = function(obj, out_table, layer_idx, key_set, from_row, lang_spec
                 layer_idx,
                 connections,
                 { layer_idx - 1, from_row },
-                layer_idx == 1
+                layer_idx == 1,
+                box_idx
             )
         end
     end
@@ -255,7 +304,9 @@ M.TableObject = function(obj, out_table, layer_idx, key_set, from_row, lang_spec
         { layer_idx - 1, from_row },
         obj,
         key_set,
-        lang_spec
+        lang_spec,
+        layer_idx,
+        box_idx
     )
 
     layer.boxes[#layer.boxes + 1] = { connections = connections, text_lines = text_lines, top_line = layer.lines + 1 }

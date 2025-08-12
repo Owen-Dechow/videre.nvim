@@ -115,16 +115,18 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, set_statusline_text)
         if pos[2] >= start then
             for _, callback in pairs(callback_set) do
                 if pos[2] < start + callback.limit then
-                    if enter_map == nil or enter_map[4] < callback[4] then
-                        enter_map = callback
-                    end
+                    if callback.predicate == nil or callback.predicate(call_opts) then
+                        if enter_map == nil or enter_map[4] < callback[4] then
+                            enter_map = callback
+                        end
 
-                    local fn = function()
-                        callback[2](call_opts)
-                    end
+                        local fn = function()
+                            callback[2](call_opts)
+                        end
 
-                    callback_keys[callback[1]] = { fn, callback[3], callback[4] }
-                    utils.keymap(callback[1], fn)
+                        callback_keys[callback[1]] = { fn, callback[3], callback[4] }
+                        utils.keymap(callback[1], fn)
+                    end
                 end
             end
         end
