@@ -14,7 +14,6 @@ local M = {
 ---@return LangSpec|nil
 function M.get(filetype)
     local lang = M.langs[filetype]
-    -- vim.print(M.langs)
 
     if type(lang) ~= "table" then
         vim.notify(filetype .. " is not a valid filetype for " .. consts.plugin_name);

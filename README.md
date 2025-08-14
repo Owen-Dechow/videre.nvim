@@ -50,9 +50,9 @@ return {
     },
     opts = {
         round_units = false,
-        simple_statusline = false, -- If you are just starting out with Videre,
-                                   --   setting this to `false` will give you
-                                   --   descriptions of available keymaps.
+        simple_statusline = true, -- If you are just starting out with Videre,
+                                  --   setting this to `false` will give you
+                                  --   descriptions of available keymaps.
     }
 }
 ```
@@ -69,9 +69,9 @@ vim.pack.add {
 
 require('videre').setup {
     round_units = false,
-    simple_statusline = false, -- If you are just starting out with Videre,
-                               --   setting this to `false` will give you
-                               --   descriptions of available keymaps.
+    simple_statusline = true, -- If you are just starting out with Videre,
+                              --   setting this to `false` will give you
+                              --   descriptions of available keymaps.
 }
 ```
 
@@ -116,6 +116,10 @@ require('videre').setup {
     -- Use simple statusline instead of providing
     --   descriptions of keymaps.
     simple_statusline = true,   
+
+    -- Show breadcrumbs to show where you are in
+    --   a Videre graph.
+    breadcrumbs = true,
 
     -- Set the priority of keymaps for the quick
     --   action keymap.

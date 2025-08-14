@@ -32,4 +32,11 @@ M.ApplyHighlighting = function(lang_spec, disable_dot)
     end
 end
 
+M.ApplyStatuslineHighlighting = function()
+    vim.cmd([[syntax match Keyword /\<Videre\>/]])
+    vim.cmd('syntax match Special "\\v\\[[^\\]]+\\]"')
+    vim.cmd([[syntax match Special /\v\<CR>=\S+/]])
+    vim.cmd([[syntax match Identifier /\v\([^)]*\)/]])
+end
+
 return M

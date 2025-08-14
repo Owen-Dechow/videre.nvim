@@ -4,24 +4,32 @@ local cfg = utils.cfg
 
 local M = {}
 
-local function full_statusline(callback_keys, enter_map)
+local function get_breadcrumbs(box)
+    return " (" .. table.concat(box.key_set, " ➧ ", 2) .. ")"
+end
+
+local function full_statusline(callback_keys, enter_map, box)
     local eq = cfg().keymap_desc_deliminator
     local statusline_text = consts.plugin_name
-        .. " (" .. cfg().keymaps.close_window .. eq .. "Close Window)"
-        .. " (" .. cfg().keymaps.help .. eq .. "Open Help)"
+        .. " [" .. cfg().keymaps.close_window .. eq .. "Close Window]"
+        .. " [" .. cfg().keymaps.help .. eq .. "Open Help]"
 
     if enter_map then
-        statusline_text = statusline_text .. " (" .. cfg().keymaps.quick_action .. eq .. enter_map[1] .. ")"
+        statusline_text = statusline_text .. " [" .. cfg().keymaps.quick_action .. eq .. enter_map[1] .. "]"
     end
 
     for k, h in pairs(callback_keys) do
-        statusline_text = statusline_text .. " (" .. k .. eq .. h[2] .. ")"
+        statusline_text = statusline_text .. " [" .. k .. eq .. h[2] .. "]"
+    end
+
+    if cfg().breadcrumbs and box and #box.key_set > 1 then
+        statusline_text = statusline_text .. get_breadcrumbs(box)
     end
 
     return statusline_text
 end
 
-local function simple_statusline(callback_keys, enter_map)
+local function simple_statusline(callback_keys, enter_map, box)
     local statusline_text = consts.plugin_name
         .. " [" .. cfg().keymaps.close_window
         .. ", " .. cfg().keymaps.help
@@ -37,16 +45,20 @@ local function simple_statusline(callback_keys, enter_map)
         statusline_text = statusline_text .. cfg().keymaps.quick_action .. eq .. enter_map[1]
     end
 
+    if cfg().breadcrumbs and box and #box.key_set > 1 then
+        statusline_text = statusline_text .. get_breadcrumbs(box)
+    end
+
     return statusline_text
 end
 
-local function update_statusline(set_text, callback_keys, enter_map)
+local function update_statusline(set_text, callback_keys, enter_map, box)
     table.sort(callback_keys, function(a, b) return a[3] >= b[3] end)
 
     if cfg().simple_statusline then
-        set_text(simple_statusline(callback_keys, enter_map))
+        set_text(simple_statusline(callback_keys, enter_map, box))
     else
-        set_text(full_statusline(callback_keys, enter_map))
+        set_text(full_statusline(callback_keys, enter_map, box))
     end
 end
 
@@ -84,12 +96,15 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, set_statusline_text)
     }
 
     local row_col_info = render_info[editor_buf].row_unit_breaks[pos[1] - 1]
+    local box
     vim.api.nvim_buf_clear_namespace(0, -1, 0, -1)
     for col_idx, col in pairs(row_col_info) do
         if not col.empty then
             if pos[2] >= col.start and pos[2] < col.start + col.width then
+                box = col.box
                 for row_idx = col.box.top_line, col.box.top_line + #col.box.text_lines - 1 do
                     row_col_info = render_info[editor_buf].row_unit_breaks[row_idx][col_idx]
+
                     if
                         row_idx == col.box.top_line
                         or row_idx == col.box.top_line + #col.box.text_lines - 1
@@ -142,7 +157,7 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, set_statusline_text)
         end)
     end
 
-    update_statusline(set_statusline_text, callback_keys, enter_map)
+    update_statusline(set_statusline_text, callback_keys, enter_map, box)
 end
 
 return M

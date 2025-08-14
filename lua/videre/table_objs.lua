@@ -309,7 +309,13 @@ M.TableObject = function(obj, out_table, layer_idx, key_set, from_row, lang_spec
         box_idx
     )
 
-    layer.boxes[#layer.boxes + 1] = { connections = connections, text_lines = text_lines, top_line = layer.lines + 1 }
+    layer.boxes[#layer.boxes + 1] = {
+        connections = connections,
+        text_lines = text_lines,
+        top_line = layer.lines + 1,
+        key_set = key_set
+    }
+
     layer.lines = layer.lines + #text_lines
     return layer.boxes[#layer.boxes].top_line
 end

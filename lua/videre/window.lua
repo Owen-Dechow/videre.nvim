@@ -75,6 +75,7 @@ local function split_view()
     local function update_statusline(text)
         vim.api.nvim_buf_set_lines(status_buf, 0, -1, false, { text })
     end
+    vim.api.nvim_buf_call(status_buf, require("videre.highlighting").ApplyStatuslineHighlighting)
     update_statusline("[JSON VIEW]")
 
     local status_win = vim.api.nvim_open_win(status_buf, false, {
@@ -91,6 +92,7 @@ local function split_view()
         zindex = 50,
         border = false,
     })
+
     vim.api.nvim_win_set_option(status_win, "winhl", "Normal:VidereStatusline")
 
     -- Cleanup autocommands

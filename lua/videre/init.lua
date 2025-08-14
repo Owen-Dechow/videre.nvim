@@ -40,6 +40,9 @@ local M = {
         ---@type boolean
         simple_statusline = true,
 
+        ---@type boolean
+        breadcrumbs = true,
+
         ---@type table
         keymap_priorities = {
             ---@type integer
