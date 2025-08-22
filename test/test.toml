@@ -1,28 +1,27 @@
-[example]
-test = "This is some test data"
+verbose = 0                                     # covered by below verbose
+seed = ["random_device", "random_device", "33"]
 
-# empty_table is an empty inline table
-empty_table = {}
+[spdlog]
+mode = "debug"
+format = "[%M:%S] [%^%L%$] %v"
+# format = "[%M:%S.%e] [%^%L%$] [%!] %v"
+# format = "[%M:%S.%e] [%^%L%$] [%!] %v"
+# format = "[%M:%S.%e] [%^%L%$] [%!] %v"
 
-# empty_array is an empty array
-empty_array = []
+[ROOT]
+# errorIgnoreLevel = 2000
+seed = 0
 
-[example.nested_table]
-data = 5
-string = "MY_\\nSTRING"
-array = ["data", ""]
+[ROOT.load]
+geant4 = [ "physicslists", "processes", "materials", "tracking", "event", "particles", "run", "Tree", "global", "ptl", "Gmocren", "geometry", "error_propagation", "OpenGL", "visHepRep", "VRML", "toolsSG", "analysis", "readout", "interfaces", "modeling", "FR", "graphics_reps", "vis_management", "RayTracer", "parmodels", "digits_hits", "track", "intercoms", "visQt3D" ]
+# "clhep" using system
+libs = [ "libhealpix_cxx", "libCCfits", "libcfitsio", "libwcs", "liberfa", "libnova", "libyaml-cpp", "libtomlplusplus" ]
+asynclibs = [ "libsharp", "libchealpix", "libomp", "libpal", "liblua", "libspdlog", "libryml", "libc4core" ]
+cxlib = [ "libcxthetaphi", "libCorsikaIODict" ]
+ #	"libcxMergeFile", "libcxTeVCat",
 
-# long_array_example is a top-level array
-long_array_example = [
-  "text_a",
-  "text_b",
-  "text_c",
-  "text_d",
-  "text_e",
-  "text_f",
-  "text_g",
-  "text_h",
-  ["FIRST"],
-  ["SECOND"],
-  ["THIRD"]
-]
+styles = [ "./cxstyle.root", "~/software/ROOT/style/cxstyle.root" ]
+
+[ROOT.cxSkymapCircle]
+name = "SkymapCircle"
+drawError = 0.000001
