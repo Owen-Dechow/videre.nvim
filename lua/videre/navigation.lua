@@ -29,21 +29,16 @@ local function full_statusline(callback_keys, enter_map, box)
     return statusline_text
 end
 
-local function simple_statusline(callback_keys, enter_map, box)
-    local statusline_text = consts.plugin_name
-        .. " [" .. cfg().keymaps.close_window
-        .. ", " .. cfg().keymaps.help
-
-    for k, _ in pairs(callback_keys) do
-        statusline_text = statusline_text .. ", " .. k
-    end
-
-    statusline_text = statusline_text .. "] "
+local function simple_statusline(enter_map, box)
+    local eq = cfg().keymap_desc_deliminator
+    local statusline_text = consts.plugin_name .. " [" .. cfg().keymaps.help
 
     if enter_map then
-        local eq = cfg().keymap_desc_deliminator
-        statusline_text = statusline_text .. cfg().keymaps.quick_action .. eq .. enter_map[1]
+        statusline_text =
+            statusline_text .. " " .. cfg().keymaps.quick_action .. eq .. enter_map[1]
     end
+
+    statusline_text = statusline_text .. "]"
 
     if cfg().breadcrumbs and box and #box.key_set > 1 then
         statusline_text = statusline_text .. get_breadcrumbs(box)
@@ -56,7 +51,7 @@ local function update_statusline(set_text, callback_keys, enter_map, box)
     table.sort(callback_keys, function(a, b) return a[3] >= b[3] end)
 
     if cfg().simple_statusline then
-        set_text(simple_statusline(callback_keys, enter_map, box))
+        set_text(simple_statusline(enter_map, box))
     else
         set_text(full_statusline(callback_keys, enter_map, box))
     end
