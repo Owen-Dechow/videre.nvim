@@ -147,7 +147,7 @@ local function get_change_val_callback(key_set, key, val, lang_spec)
                 new = num
             end
 
-            local tbl = opts.render_info.shown_obj
+            local tbl = opts.obj
             local first = true
 
             for _, k in pairs(key_set) do
@@ -192,7 +192,7 @@ local function get_add_callback(key_set, key, lang_spec)
 
             local val = vim.NIL
 
-            local tbl = opts.render_info.shown_obj
+            local tbl = opts.obj
             local first = true
 
             for _, k in pairs(key_set) do
@@ -241,7 +241,7 @@ local function get_delete_callback(key_set, key, lang_spec)
                 return
             end
 
-            local tbl = opts.render_info.shown_obj
+            local tbl = opts.obj
             local first = true
 
             for _, k in pairs(key_set) do
@@ -291,7 +291,7 @@ local function get_change_key_callback(key_set, key, lang_spec)
                 return
             end
 
-            local tbl = opts.render_info.shown_obj
+            local tbl = opts.obj
             local first = true
 
             for _, k in pairs(key_set) do
@@ -322,6 +322,19 @@ local function get_change_key_callback(key_set, key, lang_spec)
         modifying = true,
     }
 end
+local function get_set_as_root_callback(obj, key_set, lang_spec)
+    return {
+        cfg().keymaps.set_as_root,
+        function(opts)
+            ---@diagnostic disable-next-line: param-type-mismatch
+            require("videre.rendering").RenderGraph(obj, opts.editor_buf, key_set, lang_spec)
+            require("videre.link_jumping").CursorToRoot()
+        end,
+        "Set unit as root",
+        cfg().keymap_priorities.set_as_root,
+    }
+end
+
 
 local function set_connectable_text_line(
     line,
@@ -338,7 +351,8 @@ local function set_connectable_text_line(
     connections,
     origin,
     first,
-    box_idx
+    box_idx,
+    obj
 )
     local collapse_callback = get_collapse_callback(line, key_set, lang_spec)
     local back_callback = get_back_callback(first, lang_spec, origin)
@@ -347,6 +361,11 @@ local function set_connectable_text_line(
     local change_val_callback = get_change_val_callback(key_set, key, val, lang_spec)
     local delete_callback = get_delete_callback(key_set, key, lang_spec)
     local add_callback = get_add_callback(key_set, key, lang_spec)
+
+    local set_root_callback = get_set_as_root_callback(obj, key_set, lang_spec)
+    if first then
+        set_root_callback = nil
+    end
 
     local string_key = require("videre.converters").GetValAsString(key, true, lang_spec)
     local left = left_edge
@@ -378,6 +397,7 @@ local function set_connectable_text_line(
                 change_key_callback,
                 delete_callback,
                 add_callback,
+                set_root_callback,
             }
         }
 
@@ -398,6 +418,7 @@ local function set_connectable_text_line(
                 change_val_callback,
                 delete_callback,
                 add_callback,
+                set_root_callback,
             }
         }
     end
@@ -461,16 +482,7 @@ local function build_cap(top, max_len_left, first, origin, obj, key_set, lang_sp
             left = edges.edge.TOP_LEFT
             callbacks = {
                 get_back_callback(first, lang_spec, origin),
-                {
-                    cfg().keymaps.set_as_root,
-                    function(opts)
-                        ---@diagnostic disable-next-line: param-type-mismatch
-                        require("videre.rendering").RenderGraph(obj, opts.editor_buf, key_set, lang_spec)
-                        require("videre.link_jumping").CursorToRoot()
-                    end,
-                    "Set unit as root",
-                    cfg().keymap_priorities.set_as_root,
-                },
+                get_set_as_root_callback(obj, key_set, lang_spec),
                 jump_down_callback,
                 jump_up_callback,
                 add_callback,
@@ -483,11 +495,18 @@ local function build_cap(top, max_len_left, first, origin, obj, key_set, lang_sp
         left = edges.edge.BOTTOM_LEFT
         right = edges.edge.BOTTOM_RIGHT
         splitter = edges.edge.BOTTOM_SPLITTER
+
+        local set_root = get_set_as_root_callback(obj, key_set, lang_spec)
+        if first then
+            set_root = nil
+        end
+
         callbacks = {
             get_back_callback(first, lang_spec, origin),
             jump_down_callback,
             jump_up_callback,
             add_callback,
+            set_root,
         }
     end
 
@@ -562,7 +581,8 @@ M.TableObject = function(obj, out_table, layer_idx, key_set, from_row, lang_spec
                 connections,
                 { layer_idx - 1, from_row },
                 layer_idx == 1,
-                box_idx
+                box_idx,
+                obj
             )
         end
     end
