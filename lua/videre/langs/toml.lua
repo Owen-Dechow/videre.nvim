@@ -5,6 +5,7 @@ if not module_found then
 end
 
 local M = {
+    name="TOML",
     encode = nil,
     decode = function(toml_text)
         toml_text = toml_text:gsub("^[ \t]+", ""):gsub("\n[ \t]+", "\n")

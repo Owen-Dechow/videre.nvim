@@ -1,17 +1,4 @@
 {
-    "example": {
-        "test": "This is some test data",
-        "empty_table": {},
-        "empty_array": [],
-        "nested_table": {
-            "data": 5,
-            "string": "MY_\nSTRING",
-            "array": [
-                "data",
-                null
-            ]
-        }
-    },
     "long_array_example": [
         "text_a",
         "text_b",
@@ -21,8 +8,26 @@
         "text_f",
         "text_g",
         "text_h",
-        ["FIRST"],
-        ["SECOND"],
-        ["THIRD"]
-    ]
+        [
+            "FIRST"
+        ],
+        [
+            "SECOND"
+        ],
+        [
+            "THIRD"
+        ]
+    ],
+    "example": {
+        "nested_table": {
+            "data": 5,
+            "array": [
+                "data"
+            ],
+            "string": "MY_\nSTRING"
+        },
+        "test": "This is some test data",
+        "empty_table": {},
+        "empty_array": []
+    }
 }

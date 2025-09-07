@@ -164,6 +164,18 @@ require('videre').setup {
 
         -- Open the help menu
         help = "g?",
+
+        -- Change the key of the current field
+        change_key = "C",
+
+        -- Change the value of the current field
+        change_value = "V",
+
+        -- Delete the current field
+        delete_field = "D",
+
+        -- Add a field to the unit 
+        add_field = "A"
     }
 }
 ```

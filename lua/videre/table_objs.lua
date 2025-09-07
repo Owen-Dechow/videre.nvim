@@ -88,6 +88,241 @@ local function get_collapse_callback(line, key_set, lang_spec)
     }
 end
 
+local function get_change_val_callback(key_set, key, val, lang_spec)
+    return {
+        cfg().keymaps.change_value,
+        function(opts)
+            if not lang_spec.encode then
+                vim.notify(lang_spec.name .. " is not available for editing.", "WARN")
+                return
+            end
+
+            local initial
+
+            if type(val) == "string" then
+                initial = '"' .. val .. '"'
+            elseif val == vim.NIL then
+                initial = "null"
+            else
+                initial = val
+            end
+
+            local new
+            if initial == nil then
+                new = vim.fn.input("Value str/num or [null/true/false/[]/{}]: ")
+            else
+                new = vim.fn.input("Enter new value str/num or [null/true/false/[]/{}]: ", initial)
+            end
+
+            if not new or new == "" then
+                return
+            end
+
+            if new:sub(1, 1) == '"' and new:sub(-1) == '"' then
+                new = new:sub(2, -2)
+            elseif new == "true" then
+                new = true
+            elseif new == "false" then
+                new = false
+            elseif new == "null" then
+                new = vim.NIL
+            elseif new == "{}" then
+                new = vim.empty_dict()
+            elseif new == "[]" then
+                new = {}
+            else
+                local num = tonumber(new)
+
+                if not num then
+                    vim.notify(
+                        "`" ..
+                        new ..
+                        "` is not a valid value. " ..
+                        "Try wrapping in \" for strings or entering null/true/false/{}/[]. " ..
+                        "You may also enter any valid number." ..
+                        "WARN")
+                    return
+                end
+
+                new = num
+            end
+
+            local tbl = opts.render_info.shown_obj
+            local first = true
+
+            for _, k in pairs(key_set) do
+                if first then
+                    first = false
+                else
+                    tbl = tbl[k]
+                end
+            end
+
+            tbl[key] = new
+
+            require("videre.rendering").RenderGraph(
+                opts.render_info.shown_obj,
+                opts.editor_buf,
+                opts.render_info.shown_key_set,
+                lang_spec
+            )
+
+            return true
+        end,
+        "Change value of field",
+        0,
+        modifying = true
+    }
+end
+
+local function get_add_callback(key_set, key, lang_spec)
+    return {
+        cfg().keymaps.add_field,
+        function(opts)
+            if not lang_spec.encode then
+                vim.notify(lang_spec.name .. " is not available for editing.", "WARN")
+                return
+            end
+
+            if type(key) == "number" then
+                key = key + 1
+            else
+                key = vim.fn.input("Enter key: ")
+            end
+
+            local val = vim.NIL
+
+            local tbl = opts.render_info.shown_obj
+            local first = true
+
+            for _, k in pairs(key_set) do
+                if first then
+                    first = false
+                else
+                    tbl = tbl[k]
+                end
+            end
+
+            if type(key) == "number" then
+                table.insert(tbl, key, val)
+            else
+                if tbl[key] then
+                    vim.notify("This unit already has the key `" .. key .. "`.", "WARN")
+                    return
+                end
+
+                tbl[key] = val
+            end
+
+
+            local success = get_change_val_callback(key_set, key, nil, lang_spec)[2](opts)
+            if not success then
+                tbl[key] = nil
+            end
+        end,
+        "Add field",
+        0,
+        modifying = true
+    }
+end
+
+local function get_delete_callback(key_set, key, lang_spec)
+    return {
+        cfg().keymaps.delete_field,
+        function(opts)
+            if not lang_spec.encode then
+                vim.notify(lang_spec.name .. " is not available for editing.", "WARN")
+                return
+            end
+
+            local new = vim.fn.input("Are you sure you want to delete `" .. key .. "` [y/n]: ")
+
+            if new ~= "y" and new ~= "yes" then
+                return
+            end
+
+            local tbl = opts.render_info.shown_obj
+            local first = true
+
+            for _, k in pairs(key_set) do
+                if first then
+                    first = false
+                else
+                    tbl = tbl[k]
+                end
+            end
+
+            if type(key) == "number" then
+                table.remove(tbl, key)
+            else
+                tbl[key] = nil
+            end
+
+            require("videre.rendering").RenderGraph(
+                opts.render_info.shown_obj,
+                opts.editor_buf,
+                opts.render_info.shown_key_set,
+                lang_spec
+            )
+        end,
+        "Delete field",
+        0,
+        modifying = true
+    }
+end
+
+
+local function get_change_key_callback(key_set, key, lang_spec)
+    if type(key) == "number" then
+        return
+    end
+
+    return {
+        cfg().keymaps.change_key,
+        function(opts)
+            if not lang_spec.encode then
+                vim.notify(lang_spec.name .. " is not available for editing.", "WARN")
+                return
+            end
+
+            local new = vim.fn.input("Enter new key: ", key)
+
+            if not new or new == "" then
+                return
+            end
+
+            local tbl = opts.render_info.shown_obj
+            local first = true
+
+            for _, k in pairs(key_set) do
+                if first then
+                    first = false
+                else
+                    tbl = tbl[k]
+                end
+            end
+
+            if tbl[new] then
+                vim.notify("This unit already has the key `" .. new .. "`.", "WARN")
+                return
+            end
+
+            tbl[new] = tbl[key]
+            tbl[key] = nil
+
+            require("videre.rendering").RenderGraph(
+                opts.render_info.shown_obj,
+                opts.editor_buf,
+                opts.render_info.shown_key_set,
+                lang_spec
+            )
+        end,
+        "Change key of field",
+        0,
+        modifying = true,
+    }
+end
+
 local function set_connectable_text_line(
     line,
     key_set,
@@ -108,6 +343,10 @@ local function set_connectable_text_line(
     local collapse_callback = get_collapse_callback(line, key_set, lang_spec)
     local back_callback = get_back_callback(first, lang_spec, origin)
     local jump_down_callback, jump_up_callback = get_vertical_jump_callbacks(layer_idx, box_idx)
+    local change_key_callback = get_change_key_callback(key_set, key, lang_spec)
+    local change_val_callback = get_change_val_callback(key_set, key, val, lang_spec)
+    local delete_callback = get_delete_callback(key_set, key, lang_spec)
+    local add_callback = get_add_callback(key_set, key, lang_spec)
 
     local string_key = require("videre.converters").GetValAsString(key, true, lang_spec)
     local left = left_edge
@@ -132,7 +371,13 @@ local function set_connectable_text_line(
                     "Jump to linked unit",
                     cfg().keymap_priorities.link_forward,
                 },
-                collapse_callback, back_callback, jump_down_callback, jump_up_callback
+                collapse_callback,
+                back_callback,
+                jump_down_callback,
+                jump_up_callback,
+                change_key_callback,
+                delete_callback,
+                add_callback,
             }
         }
 
@@ -144,7 +389,16 @@ local function set_connectable_text_line(
         text_lines[#text_lines + 1] = {
             left,
             cfg().space_char, right .. edges.edge.LEFT_AND_RIGHT,
-            { collapse_callback, back_callback, jump_down_callback, jump_up_callback }
+            {
+                collapse_callback,
+                back_callback,
+                jump_down_callback,
+                jump_up_callback,
+                change_key_callback,
+                change_val_callback,
+                delete_callback,
+                add_callback,
+            }
         }
     end
 end
@@ -181,13 +435,27 @@ local function build_cap(top, max_len_left, first, origin, obj, key_set, lang_sp
     local jump_down_callback, jump_up_callback = get_vertical_jump_callbacks(
         layer_idx, unit_idx)
 
+    local key
+    if vim.islist(obj) then
+        if top then
+            key = 0
+        else
+            key = #obj
+        end
+    else
+        key = ""
+    end
+
+    local add_callback = get_add_callback(key_set, key, lang_spec)
+
     if top then
         if first then
             left = edges.edge.TOP_LEFT_ROOT
             callbacks = {
                 get_back_callback(first, lang_spec, origin),
                 jump_down_callback,
-                jump_up_callback
+                jump_up_callback,
+                add_callback,
             }
         else
             left = edges.edge.TOP_LEFT
@@ -205,6 +473,7 @@ local function build_cap(top, max_len_left, first, origin, obj, key_set, lang_sp
                 },
                 jump_down_callback,
                 jump_up_callback,
+                add_callback,
             }
         end
 
@@ -218,6 +487,7 @@ local function build_cap(top, max_len_left, first, origin, obj, key_set, lang_sp
             get_back_callback(first, lang_spec, origin),
             jump_down_callback,
             jump_up_callback,
+            add_callback,
         }
     end
 

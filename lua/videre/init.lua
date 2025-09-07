@@ -4,6 +4,7 @@ local consts = require("videre.consts")
 local langs = require("videre.langs")
 
 local M = {
+    has_edits = {},
     expanded = {},
     config = {
         ---@type string
@@ -98,6 +99,18 @@ local M = {
 
             ---@type string
             help = "g?",
+
+            ---@type string
+            change_key = "C",
+
+            ---@type string
+            change_value = "V",
+
+            ---@type string
+            delete_field = "D",
+
+            ---@type string
+            add_field = "A"
         }
     },
     render_info = {},
@@ -115,6 +128,7 @@ local M = {
 ---text_output_table: table}
 
 ---@alias LangSpec {
+---name: string,
 ---highlight: function|nil,
 ---encode: function,
 ---decode: function,

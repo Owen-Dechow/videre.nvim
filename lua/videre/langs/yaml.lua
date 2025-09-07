@@ -5,6 +5,7 @@ if not module_found then
 end
 
 local M = {
+    name="YAML",
     encode = nil,
     decode = function(yaml_text)
         local success, result = pcall(yaml.parse, yaml_text)

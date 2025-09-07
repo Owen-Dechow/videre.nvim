@@ -24,3 +24,4 @@ nowait
 texta
 textb
 colorcolumn
+bufnr

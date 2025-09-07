@@ -8,9 +8,17 @@ local function get_breadcrumbs(box)
     return " (" .. table.concat(box.key_set, " ➧ ", 2) .. ")"
 end
 
-local function full_statusline(callback_keys, enter_map, box)
+local function full_statusline(callback_keys, enter_map, box, editor_buf)
     local eq = cfg().keymap_desc_deliminator
-    local statusline_text = consts.plugin_name
+
+    local statusline_text
+    if require("videre").has_edits[editor_buf] then
+        statusline_text = "+"
+    else
+        statusline_text = ""
+    end
+
+    statusline_text = statusline_text .. consts.plugin_name
         .. " [" .. cfg().keymaps.close_window .. eq .. "Close Window]"
         .. " [" .. cfg().keymaps.help .. eq .. "Open Help]"
 
@@ -29,9 +37,17 @@ local function full_statusline(callback_keys, enter_map, box)
     return statusline_text
 end
 
-local function simple_statusline(enter_map, box)
+local function simple_statusline(enter_map, box, editor_buf)
     local eq = cfg().keymap_desc_deliminator
-    local statusline_text = consts.plugin_name .. " [" .. cfg().keymaps.help
+
+    local statusline_text
+    if require("videre").has_edits[editor_buf] then
+        statusline_text = "+"
+    else
+        statusline_text = ""
+    end
+
+    statusline_text = statusline_text .. consts.plugin_name .. " [" .. cfg().keymaps.help
 
     if enter_map then
         statusline_text =
@@ -47,13 +63,13 @@ local function simple_statusline(enter_map, box)
     return statusline_text
 end
 
-local function update_statusline(set_text, callback_keys, enter_map, box)
+local function update_statusline(set_text, callback_keys, enter_map, box, editor_buf)
     table.sort(callback_keys, function(a, b) return a[3] >= b[3] end)
 
     if cfg().simple_statusline then
-        set_text(simple_statusline(enter_map, box))
+        set_text(simple_statusline(enter_map, box, editor_buf))
     else
-        set_text(full_statusline(callback_keys, enter_map, box))
+        set_text(full_statusline(callback_keys, enter_map, box, editor_buf))
     end
 end
 
@@ -132,6 +148,10 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, set_statusline_text)
 
                         local fn = function()
                             callback[2](call_opts)
+                            if callback.modifying then
+                                require("videre").has_edits[editor_buf] = true
+                                M.CursorMoved(editor_buf, obj, file, file_buf, set_statusline_text)
+                            end
                         end
 
                         callback_keys[callback[1]] = { fn, callback[3], callback[4] }
@@ -152,7 +172,7 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, set_statusline_text)
         end)
     end
 
-    update_statusline(set_statusline_text, callback_keys, enter_map, box)
+    update_statusline(set_statusline_text, callback_keys, enter_map, box, editor_buf)
 end
 
 return M

@@ -6,7 +6,7 @@ local M = {}
 M.HelpMenu = function()
     local buf = vim.api.nvim_create_buf(false, true)
     local width = math.floor(vim.o.columns * 0.6)
-    local height = math.floor(vim.o.lines * 0.4)
+    local height = math.floor(vim.o.lines * 0.5)
     local row = math.floor((vim.o.lines - height) / 2)
     local col = math.floor((vim.o.columns - width) / 2)
 
@@ -42,6 +42,7 @@ M.HelpMenu = function()
     end
 
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, {
+        "",
         C "Videre Nvim | Help",
         C("Press <ESC>, "
             .. cfg().keymaps.close_window
@@ -57,6 +58,10 @@ M.HelpMenu = function()
         CC(cfg().keymaps.link_forward, "Jump to connected unit."),
         CC(cfg().keymaps.link_backward, "Jump to parent unit."),
         CC(cfg().keymaps.set_as_root, "Set unit as root unit."),
+        CC(cfg().keymaps.add_field, "Add a field to the unit."),
+        CC(cfg().keymaps.delete_field, "Delete the current field."),
+        CC(cfg().keymaps.change_key, "Change the key of the current field."),
+        CC(cfg().keymaps.change_value, "Change the value of the current field."),
         "",
         C "Data explorer using Neovim's terminal interface.",
         C "Created by Owen Dechow with help from many amazing",

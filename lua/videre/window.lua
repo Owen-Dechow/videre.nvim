@@ -124,6 +124,21 @@ local function split_view()
     return editor_buf, update_statusline
 end
 
+local function format_buf(bufnr)
+    local win = vim.api.nvim_open_win(bufnr, true, {
+        relative = "editor",
+        width = 1,
+        height = 1,
+        row = 0,
+        col = 0,
+        style = "minimal",
+        border = "none",
+    })
+
+    pcall(function() vim.lsp.buf.format({ bufnr = bufnr }) end)
+    vim.api.nvim_win_close(win, true)
+end
+
 ---Shows the Videre window
 ---@param file_buf integer
 ---@param obj table
@@ -139,5 +154,19 @@ M.ShowVidereWindow = function(file_buf, obj, file, lang_spec)
         buffer = editor_buf,
         callback = function() require("videre.navigation").CursorMoved(editor_buf, obj, file, file_buf, update_statusline) end,
     })
+
+    vim.api.nvim_buf_create_user_command(editor_buf, "VidereCommit", function()
+        if lang_spec.encode then
+            local text = lang_spec.encode(obj)
+            vim.api.nvim_buf_set_lines(file_buf, 0, -1, false, { text })
+            format_buf(file_buf)
+
+            require("videre").has_edits[editor_buf] = false
+        else
+            vim.notify(lang_spec.name .. " is not a valid language for Videre editing.", "WARN")
+        end
+
+        vim.cmd([[doautocmd CursorMoved]])
+    end, {})
 end
 return M

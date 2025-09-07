@@ -6,6 +6,7 @@ end
 
 
 local M = {
+    name = "XML",
     encode = nil,
     decode = function(xml_text)
         local handler = require("xmlhandler.tree"):new()
