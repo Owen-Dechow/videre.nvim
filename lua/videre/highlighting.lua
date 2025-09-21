@@ -5,7 +5,6 @@ local M = {}
 ---@param disable_dot boolean | nil
 M.ApplyHighlighting = function(lang_spec, disable_dot)
     vim.cmd([[highlight GraphViewOperator guifg=#009900]])
-    vim.api.nvim_set_hl(0, "VidereStatusline", { bg = "#1e1e2e", fg = "#ffffff", bold = true })
     vim.api.nvim_set_hl(0, "VidereUnitHighlight", { link = "GraphViewOperator" })
 
     vim.cmd([[syntax match Special /\\[\\\"'abfnrtv]/ containedin=String]])
@@ -13,7 +12,6 @@ M.ApplyHighlighting = function(lang_spec, disable_dot)
 
     vim.cmd([[syn match Identifier /│\s*\zs\w\+\ze\s*│/ contains=@Spell]])
     vim.cmd([[syn match Identifier /╪\s*\zs\w\+\ze\s*│/ contains=@Spell]])
-    vim.cmd("syn keyword Keyword null")
     vim.cmd("syn match GraphViewOperator \"[{}\\[\\]]\"")
 
     if not disable_dot then
@@ -21,21 +19,19 @@ M.ApplyHighlighting = function(lang_spec, disable_dot)
     end
 
     vim.cmd([[syn match Comment "]] .. require("videre.utils").cfg().space_char .. [["]])
+    vim.cmd("syn keyword Keyword null")
     vim.cmd("syn keyword Boolean true false")
-    vim.cmd("syn match Number \"[-+]\\=\\%(0\\|[1-9]\\d*\\)\\%(\\.\\d*\\)\\=\\%([eE][-+]\\=\\d\\+\\)\\=\"")
-    vim.cmd("syn match Number \"[-+]\\=\\%(\\.\\d\\+\\)\\%([eE][-+]\\=\\d\\+\\)\\=\"")
-    vim.cmd("syn match Number \"[-+]\\=0[xX]\\x*\"")
-    vim.cmd("syn match Number \"[-+]\\=Infinity\\|NaN\"")
+    vim.cmd([[syn match Number "\v[0-9]+"]])
+
+    -- Statusline
+    vim.cmd([[syn match Keyword "\v^\+?Videre"]])
+    vim.cmd([=[syn match Special "\v(^\+?Videre.*)@<=\[[^\]]+\]"]=])
+    vim.cmd([[syn match Identifier /\v(^\+?Videre.*)@<=\([^)]*\)/]])
 
     if lang_spec.highlight then
         lang_spec.highlight()
     end
 end
 
-M.ApplyStatuslineHighlighting = function()
-    vim.cmd([[syntax match Keyword /\<Videre\>/]])
-    vim.cmd('syntax match Special "\\v\\[[^\\]]+\\]"')
-    vim.cmd([[syntax match Identifier /\v\([^)]*\)/]])
-end
 
 return M

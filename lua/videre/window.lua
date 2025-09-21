@@ -71,52 +71,12 @@ local function split_view()
     end
 
     -- Floating statusline setup
-    local status_buf = vim.api.nvim_create_buf(false, true)
     local function update_statusline(text)
-        vim.api.nvim_buf_set_lines(status_buf, 0, -1, false, { text })
+        vim.api.nvim_buf_set_option(editor_buf, 'modifiable', true)
+        vim.api.nvim_buf_set_lines(editor_buf, 0, 1, false, { text })
+        vim.api.nvim_buf_set_option(editor_buf, 'modifiable', false)
     end
-    vim.api.nvim_buf_call(status_buf, require("videre.highlighting").ApplyStatuslineHighlighting)
     update_statusline("[JSON VIEW]")
-
-    local status_win = vim.api.nvim_open_win(status_buf, false, {
-        relative = "win",
-        win = new_win,
-        row = 0,
-        col = 0,
-        width = target_width,
-        height = 1,
-        anchor = "NW",
-        style = "minimal",
-        focusable = false,
-        noautocmd = true,
-        zindex = 50,
-        border = false,
-    })
-
-    vim.api.nvim_win_set_option(status_win, "winhl", "Normal:VidereStatusline")
-
-    -- Cleanup autocommands
-    local augroup = vim.api.nvim_create_augroup("VidereStatus", { clear = false })
-
-    vim.api.nvim_create_autocmd({ "WinClosed" }, {
-        group = augroup,
-        callback = function(args)
-            local closed_win = tonumber(args.match)
-            if closed_win == new_win and vim.api.nvim_win_is_valid(status_win) then
-                vim.api.nvim_win_close(status_win, true)
-            end
-        end
-    })
-
-    vim.api.nvim_create_autocmd({ "BufWipeout", "BufHidden" }, {
-        group = augroup,
-        buffer = editor_buf,
-        callback = function()
-            if vim.api.nvim_win_is_valid(status_win) then
-                vim.api.nvim_win_close(status_win, true)
-            end
-        end
-    })
 
     utils.keymap(cfg().keymaps.close_window, "<CMD>q<CR>")
     utils.keymap(cfg().keymaps.help, require("videre.help").HelpMenu)
@@ -124,19 +84,10 @@ local function split_view()
     return editor_buf, update_statusline
 end
 
-local function format_buf(bufnr)
-    local win = vim.api.nvim_open_win(bufnr, true, {
-        relative = "editor",
-        width = 1,
-        height = 1,
-        row = 0,
-        col = 0,
-        style = "minimal",
-        border = "none",
-    })
-
-    pcall(function() vim.lsp.buf.format({ bufnr = bufnr }) end)
-    vim.api.nvim_win_close(win, true)
+local function format_buf(file_bufnr, editor_buf)
+    vim.api.nvim_set_current_buf(file_bufnr)
+    pcall(function() vim.lsp.buf.format({ bufnr = file_bufnr }) end)
+    vim.api.nvim_set_current_buf(editor_buf)
 end
 
 ---Shows the Videre window
@@ -159,7 +110,7 @@ M.ShowVidereWindow = function(file_buf, obj, file, lang_spec)
         if lang_spec.encode then
             local text = lang_spec.encode(obj)
             vim.api.nvim_buf_set_lines(file_buf, 0, -1, false, { text })
-            format_buf(file_buf)
+            format_buf(file_buf, editor_buf)
 
             require("videre").has_edits[editor_buf] = false
         else
