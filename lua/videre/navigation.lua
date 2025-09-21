@@ -81,10 +81,6 @@ end
 ---@param set_statusline_text function
 M.CursorMoved = function(editor_buf, obj, file, file_buf, set_statusline_text)
     local pos = vim.api.nvim_win_get_cursor(0)
-    if pos[1] == 1 then
-        vim.api.nvim_win_set_cursor(0, { 2, pos[2] })
-        pos[1] = 2
-    end
 
     local ignored_remaps = { [cfg().keymaps.close_window] = true, [cfg().keymaps.help] = true }
     for _, k in pairs(cfg().keymaps) do
@@ -109,53 +105,55 @@ M.CursorMoved = function(editor_buf, obj, file, file_buf, set_statusline_text)
     local row_col_info = render_info[editor_buf].row_unit_breaks[pos[1] - 1]
     local box
     vim.api.nvim_buf_clear_namespace(0, -1, 0, -1)
-    for col_idx, col in pairs(row_col_info) do
-        if not col.empty then
-            if pos[2] >= col.start and pos[2] < col.start + col.width then
-                box = col.box
-                for row_idx = col.box.top_line, col.box.top_line + #col.box.text_lines - 1 do
-                    row_col_info = render_info[editor_buf].row_unit_breaks[row_idx][col_idx]
+    if row_col_info then
+        for col_idx, col in pairs(row_col_info) do
+            if not col.empty then
+                if pos[2] >= col.start and pos[2] < col.start + col.width then
+                    box = col.box
+                    for row_idx = col.box.top_line, col.box.top_line + #col.box.text_lines - 1 do
+                        row_col_info = render_info[editor_buf].row_unit_breaks[row_idx][col_idx]
 
-                    if
-                        row_idx == col.box.top_line
-                        or row_idx == col.box.top_line + #col.box.text_lines - 1
-                    then
-                        vim.api.nvim_buf_add_highlight(0, -1, "VidereUnitHighlight", row_idx, row_col_info.start,
-                            row_col_info.start + row_col_info.width)
-                    else
-                        vim.api.nvim_buf_add_highlight(0, -1, "VidereUnitHighlight", row_idx, row_col_info.start,
-                            row_col_info.start + 1)
+                        if
+                            row_idx == col.box.top_line
+                            or row_idx == col.box.top_line + #col.box.text_lines - 1
+                        then
+                            vim.api.nvim_buf_add_highlight(0, -1, "VidereUnitHighlight", row_idx, row_col_info.start,
+                                row_col_info.start + row_col_info.width)
+                        else
+                            vim.api.nvim_buf_add_highlight(0, -1, "VidereUnitHighlight", row_idx, row_col_info.start,
+                                row_col_info.start + 1)
 
-                        vim.api.nvim_buf_add_highlight(0, -1, "VidereUnitHighlight", row_idx,
-                            row_col_info.start + row_col_info.width - 3,
-                            row_col_info.start + row_col_info.width)
+                            vim.api.nvim_buf_add_highlight(0, -1, "VidereUnitHighlight", row_idx,
+                                row_col_info.start + row_col_info.width - 3,
+                                row_col_info.start + row_col_info.width)
+                        end
                     end
-                end
 
-                vim.api.nvim_buf_add_highlight(0, -1, "CursorLine", pos[1] - 1, col.start, col.start + col.width)
+                    vim.api.nvim_buf_add_highlight(0, -1, "CursorLine", pos[1] - 1, col.start, col.start + col.width)
+                end
             end
         end
-    end
 
-    for start, callback_set in pairs(render_info[editor_buf].line_callbacks[pos[1] - 1]) do
-        if pos[2] >= start then
-            for _, callback in pairs(callback_set) do
-                if pos[2] < start + callback.limit then
-                    if callback.predicate == nil or callback.predicate(call_opts) then
-                        if enter_map == nil or enter_map[4] < callback[4] then
-                            enter_map = callback
-                        end
-
-                        local fn = function()
-                            callback[2](call_opts)
-                            if callback.modifying then
-                                require("videre").has_edits[editor_buf] = true
-                                M.CursorMoved(editor_buf, obj, file, file_buf, set_statusline_text)
+        for start, callback_set in pairs(render_info[editor_buf].line_callbacks[pos[1] - 1]) do
+            if pos[2] >= start then
+                for _, callback in pairs(callback_set) do
+                    if pos[2] < start + callback.limit then
+                        if callback.predicate == nil or callback.predicate(call_opts) then
+                            if enter_map == nil or enter_map[4] < callback[4] then
+                                enter_map = callback
                             end
-                        end
 
-                        callback_keys[callback[1]] = { fn, callback[3], callback[4] }
-                        utils.keymap(callback[1], fn)
+                            local fn = function()
+                                callback[2](call_opts)
+                                if callback.modifying then
+                                    require("videre").has_edits[editor_buf] = true
+                                    M.CursorMoved(editor_buf, obj, file, file_buf, set_statusline_text)
+                                end
+                            end
+
+                            callback_keys[callback[1]] = { fn, callback[3], callback[4] }
+                            utils.keymap(callback[1], fn)
+                        end
                     end
                 end
             end
