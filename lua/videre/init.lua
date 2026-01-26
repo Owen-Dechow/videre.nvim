@@ -162,19 +162,6 @@ end
 
 vim.api.nvim_create_user_command(consts.plugin_name, M.OpenVidere, {})
 
-vim.api.nvim_create_user_command(consts.former_plugin_name, function()
-    vim.notify(
-        "[DEPRECATION]\n" ..
-        "The :"
-        .. consts.former_plugin_name
-        .. " user command is deprecated. Use the new :"
-        .. consts.plugin_name
-        .. " command instead.",
-        "WARN"
-    )
-    M.OpenVidere()
-end, {})
-
 ---Set up the plugin
 ---@param opts table
 M.setup = function(opts)

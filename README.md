@@ -207,7 +207,7 @@ When entering a new value of a field the following rules must be followed:
 ## 🗂️ Different File Types
 
 To enable different filetypes just add the correct parser plugin.
-JsonGraphView will automatically detect the installed plugin and
+Videre will automatically detect the installed plugin and
 allow you to explore that filetype.
 
 Here are a list of supported parsers:
@@ -221,10 +221,10 @@ If you would like to add a parser please open an issue or contribute a PR.
 ## 📄 License
 
 This software is licensed under the MIT Standard License
-[(Copyright (c) 2025 Owen Dechow)](https://github.com/Owen-Dechow/nvim_json_graph_view/blob/main/LICENSE).
+[(Copyright (c) 2025 Owen Dechow)](https://github.com/Owen-Dechow/videre.nvim/blob/main/LICENSE).
 
 ## 🤝 Contributions
 
 Contributions to this software are greatly appreciated.
-Please read [CONTRIBUTING.md](https://github.com/Owen-Dechow/nvim_json_graph_view/blob/main/CONTRIBUTING.md)
+Please read [CONTRIBUTING.md](https://github.com/Owen-Dechow/videre.nvim/blob/main/CONTRIBUTING.md)
 for further guidelines.

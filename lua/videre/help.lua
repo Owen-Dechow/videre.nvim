@@ -21,6 +21,7 @@ M.HelpMenu = function()
     }
 
     local win = vim.api.nvim_open_win(buf, true, opts)
+    vim.wo.scrolloff = 0;
 
     local function C(text)
         local text_width = utils.utf8len(text)
