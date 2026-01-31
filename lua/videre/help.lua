@@ -58,6 +58,8 @@ M.HelpMenu = function()
         CC(cfg().keymaps.expand, "Expand a unit."),
         CC(cfg().keymaps.link_forward, "Jump to connected unit."),
         CC(cfg().keymaps.link_backward, "Jump to parent unit."),
+        CC(cfg().keymaps.link_up, "Jump up one unit."),
+        CC(cfg().keymaps.link_down, "Jump down one unit."),
         CC(cfg().keymaps.set_as_root, "Set unit as root unit."),
         CC(cfg().keymaps.add_field, "Add a field to the unit."),
         CC(cfg().keymaps.delete_field, "Delete the current field."),

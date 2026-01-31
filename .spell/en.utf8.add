@@ -27,3 +27,4 @@ colorcolumn
 bufnr
 keymaps
 statusline
+virtcol

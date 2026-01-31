@@ -75,13 +75,21 @@ local function get_collapse_callback(line, key_set, lang_spec)
         return nil
     end
 
+    local overflow = line - cfg().max_lines - 2
+
     return {
         cfg().keymaps.collapse,
         function(opts)
+            local col = vim.fn.virtcol('.') - 1
+            local row = vim.fn.line('.') - overflow
+
             require("videre.expanding").SetExpanded(key_set, false)
             require("videre.rendering").RenderGraph(opts.render_info.shown_obj, opts.editor_buf,
                 opts.render_info.shown_key_set,
                 lang_spec)
+
+
+            vim.api.nvim_win_set_cursor(0, { row, vim.fn.virtcol2col(0, row, col) })
         end,
         "Collapse unit",
         cfg().keymap_priorities.collapse,
