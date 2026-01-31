@@ -25,3 +25,5 @@ texta
 textb
 colorcolumn
 bufnr
+keymaps
+statusline

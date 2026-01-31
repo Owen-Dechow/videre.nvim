@@ -34,7 +34,6 @@ M.ROUND_LINE = {
     TURN_SIDE_FD = "╰",
     TURN_UP = "╯",
     SIDE = "─",
-    CROSS = "┼",
     UP_DOWN = "│",
 }
 
@@ -44,7 +43,6 @@ M.HARD_LINE = {
     TURN_SIDE_FD = "└",
     TURN_UP = "┘",
     SIDE = "─",
-    CROSS = "┼",
     UP_DOWN = "│",
 }
 

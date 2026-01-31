@@ -100,6 +100,10 @@ using Neovim's terminal interface.
   
       -- Set the connection style to round
       round_connections = true,
+
+      -- The space between vertical connection pipes:
+      --    MUST BE >= 1
+      connection_spacing = 2,
   
       -- Disable line wrapping for the graph buffer
       disable_line_wrap = true,

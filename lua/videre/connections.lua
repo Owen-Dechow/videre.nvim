@@ -1,4 +1,5 @@
 local edges = require("videre.edges")
+local utils = require("videre.utils")
 
 local M = {}
 
@@ -34,7 +35,8 @@ local function build_connections_for_layer(connections, grid_height)
         end
     end
 
-    for _ = 1, math.max(#up_cons, #down_cons) + 2 do
+    local n_cols = math.max(#up_cons, #down_cons) * utils.cfg().connection_spacing
+    for _ = 1, n_cols do
         add_col_to_grid()
     end
 
@@ -72,27 +74,26 @@ local function build_connections_for_layer(connections, grid_height)
 
             local char
             if last_was_right and new_is_right then
-                if grid[row][col] == edges.line.UP_DOWN then
-                    char = edges.line.CROSS
-                else
-                    char = edges.line.SIDE
-                end
+                char = edges.line.SIDE
             elseif last_was_right and (not new_is_right) then
                 char = edges.line.TURN_DOWN
             elseif (not last_was_right) and new_is_right then
                 char = edges.line.TURN_SIDE_FD
             else
-                if grid[row][col] == edges.line.SIDE then
-                    char = edges.line.CROSS
-                else
-                    char = edges.line.UP_DOWN
-                end
+                char = edges.line.UP_DOWN
             end
 
             grid[row][col] = char
             last_was_right = new_is_right
             row = new_row
             col = new_col
+
+            if last_was_right then
+                for _ = 1, utils.cfg().connection_spacing - 1 do
+                    grid[row][col] = edges.line.SIDE
+                    col = col + 1;
+                end
+            end
         end
     end
 
@@ -123,28 +124,45 @@ local function build_connections_for_layer(connections, grid_height)
 
             local char
             if last_was_right and new_is_right then
-                if grid[row][col] == edges.line.UP_DOWN then
-                    char = edges.line.CROSS
-                else
-                    char = edges.line.SIDE
-                end
+                char = edges.line.SIDE
             elseif last_was_right and (not new_is_right) then
                 char = edges.line.TURN_UP
             elseif (not last_was_right) and new_is_right then
                 char = edges.line.TURN_SIDE_FU
             else
-                if grid[row][col] == edges.line.SIDE then
-                    char = edges.line.CROSS
-                else
-                    char = edges.line.UP_DOWN
-                end
+                char = edges.line.UP_DOWN
             end
-
 
             grid[row][col] = char
             last_was_right = new_is_right
             row = new_row
             col = new_col
+
+            if last_was_right then
+                for _ = 1, utils.cfg().connection_spacing - 1 do
+                    grid[row][col] = edges.line.SIDE
+                    col = col + 1;
+                end
+            end
+        end
+    end
+
+    for col = grid_cols, 1, -1 do
+        local unnecessary = true
+
+        for _, row in pairs(grid) do
+            if row[col] ~= " " and row[col] ~= edges.line.SIDE then
+                unnecessary = false
+                break
+            end
+        end
+
+        if unnecessary then
+            for _, row in pairs(grid) do
+                row[col] = nil
+            end
+        else
+            break
         end
     end
 

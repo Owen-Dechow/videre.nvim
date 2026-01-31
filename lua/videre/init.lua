@@ -26,6 +26,9 @@ local M = {
         ---@type boolean
         round_connections = true,
 
+        ---@type number
+        connection_spacing = 2,
+
         ---@type boolean
         disable_line_wrap = true,
 
