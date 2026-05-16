@@ -4,12 +4,21 @@ if not module_found then
     return nil
 end
 
+local tree_found, tree = pcall(require, "xmlhandler.tree")
+if not tree_found then
+    tree_found, tree = pcall(require, "xml2lua.xmlhandler.tree")
+end
+
+if not tree_found then
+    return nil
+end
+
 
 local M = {
     name = "XML",
     encode = nil,
     decode = function(xml_text)
-        local handler = require("xmlhandler.tree"):new()
+        local handler = tree:new()
         local parser = xml.parser(handler)
 
         local success, result = pcall(function(text)
