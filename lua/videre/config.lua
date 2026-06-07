@@ -9,117 +9,155 @@ local M = {
 
 ---@class VidereConfig
 M.config = {
+    ---@comment Character used between cells
     ---@type string
     outside_space = " ",
 
+    ---@comment Character to pad the key column
     ---@type string
     key_space = " ",
 
+    ---@comment Character to pad the value column
     ---@type string
     value_space = "·",
 
+    ---@comment Alignment of cell columns
     ---@type ColumnAlignment
     column_alignment = "center",
 
+    ---@comment Alignment of the keys within the cell
     ---@type RowAlignment
     key_alignment = "right",
 
+    ---@comment Alignment of the values within the cell
     ---@type RowAlignment
     value_alignment = "right",
 
+    ---@comment Space between connective lines (int: [0,99])
     ---@type integer
     connection_spacing = 2,
 
+    ---@comment Space between cells (int: [0,99])
     ---@type integer
     cell_spacing = 1,
 
+    ---@comment Number of lines shown by default in cell (int: [0,999])
     ---@type integer
     max_cell_lines = 5,
 
+    ---@comment Character used to indicate call values beyond `max_cell_lines`
     ---@type string
     collapse_indication_character = ".",
 
+    ---@comment Style of the connective lines
     ---@type LineStyle
     box_style = "rounded",
 
+    ---@comment Style of the cells
     ---@type LineStyle
     line_style = "rounded",
 
+    ---@comment Width of the editing character (int: [6, 999])
     ---@type integer
     editor_window_width = 60,
 
     keymaps = {
+        ---@comment Expand lines beyond `max_cell_lines`
         ---@type string
         expand = "E",
 
+        ---@comment Collapse lines beyond `max_cell_lines`
         ---@type string
         collapse = "E",
 
+        ---@comment Move cursor to linked cell
         ---@type string
         jump_forward = "L",
 
+        ---@comment Move cursor to parent cell
         ---@type string
         jump_back = "H",
 
+        ---@comment Move cursor to cell above in cell column
         ---@type string
         jump_down = "J",
 
+        ---@comment Move cursor to cell below in cell column
         ---@type string
         jump_up = "K",
 
+        ---@comment Set cell as root cell
         ---@type string
         set_as_root = "R",
 
+        ---@comment Return to the true root cell
         ---@type string
         return_to_parent_table = "H",
 
+        ---@comment Change the key of a value
         ---@type string
         change_key = "C",
 
+        ---@comment Change a value
         ---@type string
         change_value = "V",
 
+        ---@comment Delete a value
         ---@type string
         delete_value = "D",
 
+        ---@comment Add a value
         ---@type string
         add_value = "A",
 
+        ---@comment Toggle type of cell between array-like and object-like
         ---@type string
         change_type = "T",
 
+        ---@comment Open help menu
         ---@type string
         help = "g?",
 
+        ---@comment Exit
         ---@type string
         close_window = "q",
     },
 
+    ---@comment Type of window Videre will open in
     ---@type "split"|"floating"
     editor_type = "split",
 
+    ---@comment Styles of floating window
     floating_editor_style = {
+        ---@comment Space around floating window
         ---@type integer
         margin = 2,
 
+        ---@comment Floating window border type
         ---@type "rounded"|"double"|"shadow"|"none"
         border = "rounded",
 
+        ---@comment Floating window z-index
         ---@type integer
         zindex = 10
     },
 
+    ---@comment Styles of v-split window
     split_editor_style = {
+        ---@comment Where to open Videre
         ---@type "left"|"right"|"default"
         side = "right",
 
+        ---@comment What percentage of window Videre covers (num: [0.1, 0.9])
         ---@type number
         fill_percentage = 0.7,
     },
 
+    ---@comment Side scrolloff for Videre window (int: [0, 999])
     ---@type integer
     sidescrolloff = 20,
 
+    ---@comment Scrolloff for Videre window (int: [0, 999])
     ---@type integer
     scrolloff = 10,
 }

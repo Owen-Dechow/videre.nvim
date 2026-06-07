@@ -1,24 +1,25 @@
 # 📊 videre.nvim
 
-Many editors have the option to view JSON & YAML files as a graph. Neovim, with a
+Many editors have the option to view JSON, TOML, & YAML files as a graph. Neovim, with a
 terminal interface, does not have this luxury. While one can't create an
 interface like JSON Crack, it is possible to build a similar JSON explorer
 using Neovim's terminal interface.
 
 ```
-╭──────────────────┬──╮╭──┬──┬──────────────────────────────────╮╭──┬──────┬───────────╮
-│            Videre│[]├╯  │ 1│··········"This is a great plugin"││  │  user│·"will try"│
-│           Example│{}├╮  │ 2│·············"Look at this number"││  │isTrue│"100% True"│
-╰──────────────────┴──╯│  │ 3│······························3467││  ╰──────┴───────────╯
-                       │  │ 4│······························null││
-                       │  │ 5│···"The Next lines will be hidden"││
-                       │  ╪.....................................││
-                       │  ╰──┴──────────────────────────────────╯│
-                       ╰──┬────────────┬────────────────────────╮│
-                          │ empty_array│······················[]││
-                          │ empty_table│······················{}││
-                          │        test│"This is some test data"├╯
-                          ╰────────────┴────────────────────────╯
+╭──────────────────┬──╮ ╭──┬──┬──────────────────────────────────╮ ╭──┬──────┬───────────╮
+│            Videre│[]├─╯  │ 1│··········"This is a great plugin"│ │  │  user│·"will try"│
+│           Example│{}├─╮  │ 2│·············"Look at this number"│ │  │isTrue│"100% True"│
+╰──────────────────┴──╯ │  │ 3│······························3467│ │  ╰──────┴───────────╯
+                        │  │ 4│······························null│ │
+                        │  │ 5│···"The Next lines will be hidden"│ │
+                        │  ╪.....................................│ │
+                        │  ╰──┴──────────────────────────────────╯ │
+                        │                                          │
+                        ╰──┬────────────┬────────────────────────╮ │
+                           │ empty_array│······················[]│ │
+                           │ empty_table│······················{}│ │
+                           │        test│"This is some test data"├─╯
+                           ╰────────────┴────────────────────────╯
 ```
 
 [Videre Preview](https://github.com/user-attachments/assets/0f6072a3-1bd2-432f-a953-8809cb1040f0)
@@ -47,10 +48,7 @@ using Neovim's terminal interface.
           "a-usr/xml2lua.nvim", -- Optional | Experimental: add XML support
       },
       opts = {
-          round_units = false,
-          simple_statusline = true, -- If you are just starting out with Videre,
-                                    --   setting this to `false` will give you
-                                    --   descriptions of available keymaps.
+          box_style = "sharp",
       }
   }
   ```
@@ -67,126 +65,172 @@ using Neovim's terminal interface.
       "https://github.com/a-usr/xml2lua.nvim", -- Optional | Experimental: add XML support
   }
   
-  require('videre').setup {
-      round_units = false,
-      simple_statusline = true, -- If you are just starting out with Videre,
-                                --   setting this to `false` will give you
-                                --   descriptions of available keymaps.
+  require("videre").setup {
+      box_style = "sharp",
   }
   ```
 </details>
 
 ## 🧩 Options
-<details>
-  <summary>Show Defaults</summary>
-  
-  ```lua
-  {
-      -- set the window editor type
-      editor_type = "split", -- split, floating
-  
-      -- configure the floating window style
-      floating_editor_style = {
-          margin = 2,
-          border = "double",
-          zindex = 10
-      },
-  
-      -- Number of lines before collapsing
-      max_lines = 5,
-  
-      -- Set the unit style to round
-      round_units = true,
-  
-      -- Set the connection style to round
-      round_connections = true,
+```lua
+---@alias LineStyle "sharp"|"rounded"|"bold"|"double"
+---@alias ColumnAlignment "top"|"center"|"bottom"
+---@alias RowAlignment "left"|"center"|"right"
 
-      -- The space between vertical connection pipes:
-      --    MUST BE >= 1
-      connection_spacing = 2,
-  
-      -- Disable line wrapping for the graph buffer
-      disable_line_wrap = true,
-  
-      -- Set side scroll off for graph buffer
-      side_scrolloff = 20,
-  
-      -- Change the string between the keymap and
-      --   description of callback within the statusline
-      -- FOR FONTS WITH LIGATURES TRY USING "꞊" INSTEAD OF "=". 
-      -- Other great options include "->", ": ", "=>", & " ".
-      keymap_desc_deliminator = "=",
-  
-      -- Character used to represent empty space
-      space_char = "·",
-  
-      -- Use simple statusline instead of providing
-      --   descriptions of keymaps.
-      simple_statusline = true,   
-  
-      -- Show breadcrumbs to show where you are in
-      --   a Videre graph.
-      breadcrumbs = true,
-  
-      -- Set the priority of keymaps for the quick
-      --   action keymap.
-      keymap_priorities = {
-              expand = 5,
-              link_forward = 4,
-              link_backward = 3,
-              link_down = 1,
-              link_up = 1,
-              collapse = 2,
-              set_as_root = 1,
-      },
-  
-      -- Set the keys actions will be mapped to
-      keymaps = {
-          -- Expanding collapsed areas
-          expand = "E",
-  
-          -- Collapse expanded areas
-          collapse = "E",
-  
-          -- Jump to linked unit
-          link_forward = "L",
-  
-          -- Jump back to unit parent
-          link_backward = "H",
-  
-          -- Jump down a unit
-          link_down = "J",
-  
-          -- Jump up a unit
-          link_up = "K",
-  
-          -- Set current unit as root
-          set_as_root = "R",
-  
-          -- Aliased to first priority available keymap
-          quick_action = "<CR>",
-  
-          -- Close the window
-          close_window = "q",
-  
-          -- Open the help menu
-          help = "g?",
-  
-          -- Change the key of the current field
-          change_key = "C",
-  
-          -- Change the value of the current field
-          change_value = "V",
-  
-          -- Delete the current field
-          delete_field = "D",
-  
-          -- Add a field to the unit 
-          add_field = "A",
-      }
-  }
-  ```
-</details>
+{
+    ---@comment Character used between cells
+    ---@type string
+    outside_space = " ",
+
+    ---@comment Character to pad the key column
+    ---@type string
+    key_space = " ",
+
+    ---@comment Character to pad the value column
+    ---@type string
+    value_space = "·",
+
+    ---@comment Alignment of cell columns
+    ---@type ColumnAlignment
+    column_alignment = "center",
+
+    ---@comment Alignment of the keys within the cell
+    ---@type RowAlignment
+    key_alignment = "right",
+
+    ---@comment Alignment of the values within the cell
+    ---@type RowAlignment
+    value_alignment = "right",
+
+    ---@comment Space between connective lines (int: [0,99])
+    ---@type integer
+    connection_spacing = 2,
+
+    ---@comment Space between cells (int: [0,99])
+    ---@type integer
+    cell_spacing = 1,
+
+    ---@comment Number of lines shown by default in cell (int: [0,999])
+    ---@type integer
+    max_cell_lines = 5,
+
+    ---@comment Character used to indicate call values beyond `max_cell_lines`
+    ---@type string
+    collapse_indication_character = ".",
+
+    ---@comment Style of the connective lines
+    ---@type LineStyle
+    box_style = "rounded",
+
+    ---@comment Style of the cells
+    ---@type LineStyle
+    line_style = "rounded",
+
+    ---@comment Width of the editing character (int: [6, 999])
+    ---@type integer
+    editor_window_width = 60,
+
+    keymaps = {
+        ---@comment Expand lines beyond `max_cell_lines`
+        ---@type string
+        expand = "E",
+
+        ---@comment Collapse lines beyond `max_cell_lines`
+        ---@type string
+        collapse = "E",
+
+        ---@comment Move cursor to linked cell
+        ---@type string
+        jump_forward = "L",
+
+        ---@comment Move cursor to parent cell
+        ---@type string
+        jump_back = "H",
+
+        ---@comment Move cursor to cell above in cell column
+        ---@type string
+        jump_down = "J",
+
+        ---@comment Move cursor to cell below in cell column
+        ---@type string
+        jump_up = "K",
+
+        ---@comment Set cell as root cell
+        ---@type string
+        set_as_root = "R",
+
+        ---@comment Return to the true root cell
+        ---@type string
+        return_to_parent_table = "H",
+
+        ---@comment Change the key of a value
+        ---@type string
+        change_key = "C",
+
+        ---@comment Change a value
+        ---@type string
+        change_value = "V",
+
+        ---@comment Delete a value
+        ---@type string
+        delete_value = "D",
+
+        ---@comment Add a value
+        ---@type string
+        add_value = "A",
+
+        ---@comment Toggle type of cell between array-like and object-like
+        ---@type string
+        change_type = "T",
+
+        ---@comment Open help menu
+        ---@type string
+        help = "g?",
+
+        ---@comment Exit
+        ---@type string
+        close_window = "q",
+    },
+
+    ---@comment Type of window Videre will open in
+    ---@type "split"|"floating"
+    editor_type = "split",
+
+    ---@comment Styles of floating window
+    floating_editor_style = {
+        ---@comment Space around floating window
+        ---@type integer
+        margin = 2,
+
+        ---@comment Floating window border type
+        ---@type "rounded"|"double"|"shadow"|"none"
+        border = "rounded",
+
+        ---@comment Floating window z-index
+        ---@type integer
+        zindex = 10
+    },
+
+    ---@comment Styles of v-split window
+    split_editor_style = {
+        ---@comment Where to open Videre
+        ---@type "left"|"right"|"default"
+        side = "right",
+
+        ---@comment What percentage of window Videre covers (num: [0.1, 0.9])
+        ---@type number
+        fill_percentage = 0.7,
+    },
+
+    ---@comment Side scrolloff for Videre window (int: [0, 999])
+    ---@type integer
+    sidescrolloff = 20,
+
+    ---@comment Scrolloff for Videre window (int: [0, 999])
+    ---@type integer
+    scrolloff = 10,
+}
+```
 
 ## 🚀 Running
 
@@ -200,13 +244,7 @@ The following actions are allowed for editing:
 * Deleting fields
 * Changing key of field
 * Changing value fo field
-
-When entering a new value of a field the following rules must be followed:
-* Strings must be wrapped in double quotes (exe. `"Hello World"`).
-* `null`, `true` & `false` are the only valid keywords.
-* `{}` will be interpreted as a new table.
-* `[]` will be interpreted as a new list.
-* Any other values will be parsed as numbers or return an error (exe: `14.53`).
+* Toggling type of cell between array and object
 
 ## 🗂️ Different File Types
 
@@ -225,7 +263,7 @@ If you would like to add a parser please open an issue or contribute a PR.
 ## 📄 License
 
 This software is licensed under the MIT Standard License
-[(Copyright (c) 2025 Owen Dechow)](https://github.com/Owen-Dechow/videre.nvim/blob/main/LICENSE).
+[(Copyright (c) 2026 Owen Dechow)](https://github.com/Owen-Dechow/videre.nvim/blob/main/LICENSE).
 
 ## 🤝 Contributions
 
