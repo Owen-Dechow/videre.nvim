@@ -19,15 +19,16 @@
         ]
     ],
     "example": {
-        "test": "This is some test data",
-        "empty_table": {},
-        "empty_array": [],
+        "nothing": null,
         "nested_table": {
             "array": [
                 "data"
             ],
-            "string": "MY_\nSTRING",
+            "string": "MY_STRING",
             "data": 5
-        }
+        },
+        "empty_array": [],
+        "test": "This is some\ntest data",
+        "empty_table": {}
     }
 }

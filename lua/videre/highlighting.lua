@@ -1,37 +1,164 @@
-local M = {}
+local utils = require "videre.utils"
 
----Apply highlighting to current buffer
----@param lang_spec LangSpec
----@param disable_dot boolean | nil
-M.ApplyHighlighting = function(lang_spec, disable_dot)
-    vim.cmd([[highlight GraphViewOperator guifg=#009900]])
-    vim.api.nvim_set_hl(0, "VidereUnitHighlight", { link = "GraphViewOperator" })
+M = {}
 
-    vim.cmd([[syntax match Special /\\[\\\"'abfnrtv]/ containedin=String]])
-    vim.cmd([[syntax region String start=+"+ skip=+\\\\\\|\\"+ end=+"+ contains=StringEscape,@Spell]])
+local videre_special = "Special"
+local ns = vim.api.nvim_create_namespace("Videre")
 
-    vim.cmd([[syn match Identifier /│\s*\zs\w\+\ze\s*│/ contains=@Spell]])
-    vim.cmd([[syn match Identifier /╪\s*\zs\w\+\ze\s*│/ contains=@Spell]])
-    vim.cmd("syn match GraphViewOperator \"[{}\\[\\]]\"")
+---@param pos [integer, integer]
+---@param buf integer
+---@return [integer, integer]
+local function convert_col_to_bytes(pos, buf)
+    local line = vim.api.nvim_buf_get_lines(buf, pos[1], pos[1] + 1, true)[1]
+    local loc = { pos[1], vim.fn.byteidx(line, pos[2] - 1) }
+    return loc
+end
 
-    if not disable_dot then
-        vim.cmd("syn match GraphViewOperator \"\\.\"")
+---@param buf integer
+---@param cell VidereCell
+---@param left integer
+function M.HighlightFocusedCell(buf, cell, left)
+    ---@param pos [integer, integer]
+    ---@return [integer, integer]
+    local B = function(pos)
+        return convert_col_to_bytes(pos, buf)
     end
 
-    vim.cmd([[syn match Comment "]] .. require("videre.utils").cfg().space_char .. [["]])
-    vim.cmd("syn keyword Keyword null")
-    vim.cmd("syn keyword Boolean true false")
-    vim.cmd([[syn match Number "\v[0-9]+"]])
+    vim.hl.range(buf, ns, videre_special, B { cell.top_render_line, left },
+        B { cell.top_render_line, left + cell.render_width })
 
-    -- Statusline
-    vim.cmd([[syn match Keyword "\v^\+?Videre"]])
-    vim.cmd([=[syn match Special "\v(^\+?Videre.*)@<=\[[^\]]+\]"]=])
-    vim.cmd([[syn match Identifier /\v(^\+?Videre.*)@<=\([^)]*\)/]])
+    for i, _ in ipairs(cell.values) do
+        local line = cell.top_render_line + i
 
-    if lang_spec.highlight then
-        lang_spec.highlight()
+        vim.hl.range(buf, ns, videre_special, B { line, left },
+            B { line, left + 1 })
+
+        vim.hl.range(buf, ns, videre_special, B { line, left + cell.key_col_width + 1 },
+            B { line, left + cell.key_col_width + 2 })
+
+        vim.hl.range(buf, ns, videre_special, B { line, left + cell.render_width - 1 },
+            B { line, left + cell.render_width })
+    end
+
+    vim.hl.range(buf, ns, videre_special, B { cell.top_render_line + #cell.values + 1, left },
+        B { cell.top_render_line + #cell.values + 1, left + cell.render_width })
+
+    if #cell.hidden_values > 0 then
+        vim.hl.range(buf, ns, videre_special,
+            B { cell.top_render_line + #cell.values + 2, left },
+            B { cell.top_render_line + #cell.values + 2, left + cell.render_width })
+    end
+
+    local mouse_row = vim.api.nvim_win_get_cursor(0)[1] - 1
+    vim.hl.range(buf, ns, "CursorLine", B { mouse_row, left },
+        B { mouse_row, left + cell.render_width })
+end
+
+---@param bufnr integer
+---@param line integer
+---@param text string
+---@param string_start integer
+local function highlight_escapes(bufnr, line, text, string_start)
+    string_start = string_start or 0
+
+
+    local start = 1
+    while true do
+        local s, e = text:find("\\.", start)
+        if not s then break end
+
+        vim.hl.range(
+            bufnr,
+            ns,
+            "SpecialChar",
+            { line, string_start + (s - 1) },
+            { line, string_start + e }
+        )
+
+        start = e + 1
     end
 end
 
+---@param buf integer
+local function highlight_statusline(buf)
+    local text = vim.api.nvim_buf_get_lines(buf, 0, 1, true)[1]
+
+    local s, e = text:find("^%s*(%+?Videre)")
+    if s then
+        vim.hl.range(buf, ns, "Keyword", { 0, s - 1 }, { 0, e })
+    end
+
+    for bs, be in text:gmatch("()%[.-%]()") do
+        vim.hl.range(buf, ns, "Special", { 0, bs - 1 }, { 0, be })
+    end
+
+    for ps, pe in text:gmatch("()%b()()") do
+        vim.hl.range(buf, ns, "Identifier", { 0, ps - 1 }, { 0, pe })
+    end
+end
+
+---@param buf integer
+---@param tbl VidereTable
+---@param cell VidereCell
+---@param left integer
+local function highlight_cell_values(buf, tbl, cell, left)
+    ---@param pos [integer, integer]
+    ---@return [integer, integer]
+    local B = function(pos)
+        return convert_col_to_bytes(pos, buf)
+    end
+
+
+    for i, entry in pairs(cell.values) do
+        local line = cell.top_render_line + i
+
+        vim.hl.range(buf, ns, "Comment",
+            B { line, left + 1 },
+            B { line, left + cell.key_col_width + 1 })
+
+        vim.hl.range(buf, ns, cell.type == "array" and "Number" or "Identifier",
+            B { line, left + entry.key_left_pad + 1 },
+            B { line, left + cell.key_col_width - entry.key_right_pad + 1 })
+
+        local type = ({
+            array = videre_special,
+            object = videre_special,
+            string = "String",
+            number = "Number",
+            null = "Keyword",
+            bool = "Boolean",
+        })[utils.ValueType(entry[2])]
+
+        vim.hl.range(buf, ns, "Comment", B { line, left + cell.key_col_width + 2 },
+            B { line, left + cell.render_width - 1 })
+
+        vim.hl.range(buf, ns, type, B { line, left + cell.key_col_width + entry.val_left_pad + 2 },
+            B { line, left + cell.render_width - entry.val_right_pad - 1 })
+
+        if type == "String" then
+            local start = B({ line, left + cell.key_col_width + entry.val_left_pad + 2 })[2]
+            highlight_escapes(buf, line, tbl.lang_spec.ValueAsString(entry[2], "string", false), start)
+        end
+    end
+end
+
+---@param buf integer
+---@param tbl VidereTable
+function M.HighlightBuffer(buf, tbl)
+    for _, layer in pairs(tbl.layers) do
+        for _, cell in pairs(layer.cells) do
+            if not cell.is_hidden then
+                highlight_cell_values(buf, tbl, cell, layer.left_render_col)
+            end
+        end
+    end
+
+    highlight_statusline(buf)
+end
+
+---@param buf integer
+function M.Clear(buf)
+    vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
+end
 
 return M

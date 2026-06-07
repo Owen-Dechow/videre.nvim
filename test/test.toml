@@ -1,4 +1,3 @@
-[example]
 test = "This is some test data"
 
 # empty_table is an empty inline table

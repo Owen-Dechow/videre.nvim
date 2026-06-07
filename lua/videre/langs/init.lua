@@ -1,26 +1,31 @@
-local consts = require("videre.consts")
+---@class LangSpec
+---@field Decode fun(text: string): DataObj)
+---@field Encode (fun(obj: DataObj): string[])|nil
+---@field name string
+---@field ft string
+---@field ValueAsString fun(val: VidereValue, type: VidereValueTypeName, is_key: boolean): string
+---@field ParseVal (fun(text: string): DataObj)|nil
+---@field ParseKey (fun(text: string): DataObj)|nil
+---@field ParseKeyVal (fun(text: string): [string, DataObj])|nil
 
-local M = {
-    langs = {
-        json = require("videre.langs.json"),
-        yaml = require("videre.langs.yaml"),
-        xml = require("videre.langs.xml"),
-        toml = require("videre.langs.toml"),
-    }
-}
+---@type table<string, LangSpec>
+local M = {}
 
----Get the LangSpec for the given filetype
----@param filetype string
----@return LangSpec|nil
-function M.get(filetype)
-    local lang = M.langs[filetype]
+---@param lib string
+local function add_lang(lib)
+    ---@type [string[], LangSpec]|nil
+    local result = require(lib)
 
-    if type(lang) ~= "table" then
-        vim.notify(filetype .. " is not a valid filetype for " .. consts.plugin_name);
-        return nil
+    if result ~= nil then
+        for _, lang in pairs(result[1]) do
+            M[lang] = result[2]
+        end
     end
-
-    return lang
 end
+
+add_lang "videre.langs.json"
+add_lang "videre.langs.yaml"
+add_lang "videre.langs.toml"
+add_lang "videre.langs.xml"
 
 return M
