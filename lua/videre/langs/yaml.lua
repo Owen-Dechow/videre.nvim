@@ -1,26 +1,166 @@
+local utils = require "videre.utils"
+
+local M = {}
+
 local module_found, yaml = pcall(require, "yaml_parser")
 
 if not module_found then
-    return
+    return nil
 end
 
-local M = {
-    name="YAML",
-    encode = nil,
-    decode = function(yaml_text)
-        local success, result = pcall(yaml.parse, yaml_text)
-        if not success then
-            error("Failed to parse YAML: " .. result)
+---@param val VidereValue
+---@param t VidereValueTypeName
+---@param is_key boolean
+---@return string
+local function val_as_string(val, t, is_key)
+    if is_key then
+        return tostring(val)
+    end
+
+    if t == "array" then
+        return "-"
+    elseif t == "object" then
+        return ":"
+    elseif t == "null" then
+        return "~"
+    elseif t == "bool" then
+        return val and "true" or "false"
+    elseif t == "number" then
+        return tostring(val)
+    elseif t == "string" then
+        ---@diagnostic disable-next-line: param-type-mismatch
+        return '"' .. utils.EscapeString(val) .. '"'
+    else
+        return tostring(val)
+    end
+end
+
+---@param val any
+---@return string
+local function encode_val(val)
+    local t = type(val)
+
+    if t == "string" then
+        return '"' .. utils.EscapeString(val) .. '"'
+    elseif val == vim.NIL then
+        return "~"
+    else
+        return tostring(val)
+    end
+end
+
+---@param obj DataObj
+---@param pad string|nil
+---@return string[]
+local function encode(obj, pad)
+    pad = pad and pad or ""
+    local lines = {}
+    local data_type = utils.DataType(obj)
+
+    if data_type == "array" then
+        for _, v in ipairs(obj) do
+            if type(v) ~= "table" then
+                lines[#lines + 1] = pad .. "- " .. encode_val(v)
+            elseif next(v) == nil then
+                lines[#lines + 1] = pad .. (utils.DataType(v) == "array" and "- []" or "- {}")
+            else
+                lines[#lines + 1] = pad .. "-"
+                for _, line in ipairs(encode(v, pad .. "  ")) do
+                    lines[#lines + 1] = line
+                end
+                lines[#lines + 1] = ""
+            end
+        end
+    else
+        for k, v in pairs(obj) do
+            if type(v) ~= "table" then
+                lines[#lines + 1] = pad .. k .. ": " .. encode_val(v)
+            elseif next(v) == nil then
+                lines[#lines + 1] = pad .. k .. (utils.DataType(v) == "array" and ": []" or ": {}")
+            else
+                lines[#lines + 1] = pad .. k .. ":"
+                for _, line in ipairs(encode(v, pad .. "  ")) do
+                    lines[#lines + 1] = line
+                end
+                lines[#lines + 1] = ""
+            end
+        end
+    end
+
+    return lines
+end
+
+M[1] = { "yaml" }
+
+---@type LangSpec
+M[2] = {
+    Decode = yaml.parse,
+    Encode = encode,
+    name = "YAML",
+    ft = "yaml",
+    ValueAsString = val_as_string,
+    ParseKey = function(text)
+        local ok, res = pcall(yaml.parse, text .. ": ~")
+
+        if not ok then
+            error("Malformed key.")
         end
 
-        return result
+        local key
+        for k, _ in pairs(res) do
+            if key ~= nil then
+                error("Malformed key.")
+            end
+
+            key = k
+        end
+
+        return key
     end,
-    highlight = function()
-        vim.cmd([[syn match Keyword "\~"]])
+    ParseVal = function(text)
+        local ok, res = pcall(yaml.parse, "- " .. text)
+
+        if not ok then
+            error("Malformed key.")
+        end
+
+        local key, val
+        for k, v in pairs(res) do
+            if key ~= nil then
+                error("Malformed key.")
+            end
+
+            key, val = k, v
+        end
+
+        return val
     end,
-    symbols = {
-        null = "~",
-    }
+    ParseKeyVal = function(text)
+        local ok, res = pcall(yaml.parse, text)
+
+        if not ok then
+            error("Malformed key value pair.")
+        end
+
+        local key, val
+        for k, v in pairs(res) do
+            if key ~= nil then
+                error("Too many key value pairs found.")
+            end
+
+            key, val = k, v
+        end
+
+        if key == nil then
+            error("No key passed.")
+        end
+
+        if type(key) ~= "string" then
+            error("Key must be string.")
+        end
+
+        return { key, val }
+    end
 }
 
 return M

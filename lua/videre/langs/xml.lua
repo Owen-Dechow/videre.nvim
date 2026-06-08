@@ -1,3 +1,7 @@
+local utils = require "videre.utils"
+
+local M = {}
+
 local module_found, xml = pcall(require, "xml2lua")
 
 if not module_found then
@@ -21,20 +25,40 @@ local M = {
         local handler = tree:new()
         local parser = xml.parser(handler)
 
-        local success, result = pcall(function(text)
-            parser:parse(text)
-            return handler.root
-        end, xml_text)
+M[1] = { "xml" }
 
-        if not success then
-            error("Failed to parse XML: " .. result)
+---@type LangSpec
+M[2] = {
+    Decode = function(xml_text)
+        local handler = tree:new()
+        local parser = xml.parser(handler)
+        parser:parse(xml_text)
+        return handler.root
+    end,
+    Encode = nil,
+    name = "XML",
+    ValueAsString = function(val, t, is_key)
+        if is_key then
+            return tostring(val)
         end
 
-        return result
-    end,
-    highlight = function() end,
-    symbols = {},
-    nodebased = true,
+        if t == "array" then
+            return "</>"
+        elseif t == "object" then
+            return "< <>"
+        elseif t == "null" then
+            return "*"
+        elseif t == "bool" then
+            return val and "true" or "false"
+        elseif t == "number" then
+            return tostring(val)
+        elseif t == "string" then
+            ---@diagnostic disable-next-line: param-type-mismatch
+            return '"' .. utils.EscapeString(val) .. '"'
+        else
+            return tostring(val)
+        end
+    end
 }
 
 return M
