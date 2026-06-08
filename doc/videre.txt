@@ -1,0 +1,200 @@
+*videre.txt*     Videre.nvim — Graph‑style JSON/TOML/YAML explorer for Neovim
+
+Videre provides a graphical, collapsible, navigable tree‑view for structured
+data formats such as JSON, TOML, YAML, and XML — rendered directly inside
+Neovim using its terminal interface.
+
+==============================================================================
+
+INTRODUCTION                                                    *videre*
+
+Many editors offer graphical JSON/TOML/YAML viewers. Neovim, being terminal‑
+based, cannot display a GUI like JSON Crack — but Videre implements a similar
+graph explorer using clever text‑based rendering.
+
+Example:
+
+╭──────────────────┬──╮ ╭──┬──┬──────────────────────────────────╮ ╭──┬──────┬───────────╮
+│            Videre│[]├─╯  │ 1│··········"This is a great plugin"│ │  │  user│·"will try"│
+│           Example│{}├─╮  │ 2│·············"Look at this number"│ │  │isTrue│"100% True"│
+╰──────────────────┴──╯ │  │ 3│······························3467│ │  ╰──────┴───────────╯
+                        │  │ 4│······························null│ │
+                        │  │ 5│···"The Next lines will be hidden"│ │
+                        │  ╪.....................................│ │
+                        │  ╰──┴──────────────────────────────────╯ │
+                        │                                          │
+                        ╰──┬────────────┬────────────────────────╮ │
+                           │ empty_array│······················[]│ │
+                           │ empty_table│······················{}│ │
+                           │        test│"This is some test data"├─╯
+                           ╰────────────┴────────────────────────╯
+
+==============================================================================
+
+FEATURES                                                       *videre-features*
+
+• Algorithmic graph rendering  
+• Collapsible units  
+• Jumping between linked units  
+• Set any unit as root  
+• Customizable styles  
+• Support for JSON, YAML, TOML, XML  
+
+==============================================================================
+
+SETUP                                                          *videre-setup*
+
+Videre can be installed using any plugin manager.
+
+>lazy.nvim~
+>
+>lua
+return {
+    "Owen-Dechow/videre.nvim",
+    cmd = "Videre",
+    dependencies = {
+        "Owen-Dechow/graph_view_yaml_parser", -- YAML support
+        "Owen-Dechow/graph_view_toml_parser", -- TOML support
+        "a-usr/xml2lua.nvim",                 -- XML support (experimental)
+    },
+    opts = {
+        box_style = "sharp",
+    }
+}
+<
+
+>vim.pack~
+>
+>lua
+vim.pack.add {
+    "https://github.com/Owen-Dechow/videre.nvim",
+    "https://github.com/Owen-Dechow/graph_view_yaml_parser",
+    "https://github.com/Owen-Dechow/graph_view_toml_parser",
+    "https://github.com/a-usr/xml2lua.nvim",
+}
+
+require("videre").setup {
+    box_style = "sharp",
+}
+<
+
+==============================================================================
+
+OPTIONS                                                        *videre-options*
+
+Videre accepts a configuration table. All fields are optional.
+
+>lua
+{
+    outside_space = " ",
+    key_space = " ",
+    value_space = "·",
+
+    column_alignment = "center",
+    key_alignment = "right",
+    value_alignment = "right",
+
+    connection_spacing = 2,
+    cell_spacing = 1,
+    max_cell_lines = 5,
+    collapse_indication_character = ".",
+
+    box_style = "rounded",
+    line_style = "rounded",
+
+    editor_window_width = 60,
+
+    keymaps = {
+        expand = "E",
+        collapse = "E",
+        jump_forward = "L",
+        jump_back = "H",
+        jump_down = "J",
+        jump_up = "K",
+        set_as_root = "R",
+        return_to_parent_table = "H",
+        change_key = "C",
+        change_value = "V",
+        delete_value = "D",
+        add_value = "A",
+        change_type = "T",
+        help = "g?",
+        close_window = "q",
+    },
+
+    editor_type = "split",
+
+    floating_editor_style = {
+        margin = 2,
+        border = "rounded",
+        zindex = 10,
+    },
+
+    split_editor_style = {
+        side = "right",
+        fill_percentage = 0.7,
+    },
+
+    sidescrolloff = 20,
+    scrolloff = 10,
+}
+<
+
+==============================================================================
+
+RUNNING                                                        *videre-running*
+
+To open Videre:
+
+    :Videre
+
+Videre opens in a split window by default.  
+The buffer filetype is:
+
+    Videre
+
+==============================================================================
+
+EDITING                                                        *videre-editing*
+
+Videre supports interactive editing:
+
+• Add fields  
+• Delete fields  
+• Change keys  
+• Change values  
+• Toggle between array/object types  
+
+==============================================================================
+
+FILETYPE SUPPORT                                               *videre-filetypes*
+
+Videre automatically detects installed parser plugins.
+
+Supported formats:
+
+• JSON — builtin  
+• YAML — graph_view_yaml_parser  
+• TOML — graph_view_toml_parser  
+• XML — xml2lua.nvim (experimental)
+
+To add a new parser, open an issue or submit a PR.
+
+==============================================================================
+
+LICENSE                                                        *videre-license*
+
+Videre is licensed under the MIT License.  
+See: https://github.com/Owen-Dechow/videre.nvim/blob/main/LICENSE
+
+==============================================================================
+
+CONTRIBUTING                                                   *videre-contributing*
+
+Contributions are welcome.  
+See: https://github.com/Owen-Dechow/videre.nvim/blob/main/CONTRIBUTING.md
+
+==============================================================================
+
+vim:tw=78:ts=8:ft=help:norl:
+

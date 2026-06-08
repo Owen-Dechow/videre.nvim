@@ -162,12 +162,11 @@ M.config = {
     scrolloff = 10,
 }
 
----@alias FieldSpec string[]
-
----@param spec FieldSpec
+---@param field string
 ---@return any
-local function get_field(spec)
+local function get_field(field)
     local tbl = M.config
+    local spec = vim.split(field, "%.")
 
     for _, key in ipairs(spec) do
         tbl = tbl[key]
@@ -176,8 +175,9 @@ local function get_field(spec)
     return tbl
 end
 
----@param spec FieldSpec
-local function reset_field(spec)
+---@param field string
+local function reset_field(field)
+    local spec = vim.split(field, "%.")
     local tbl = M.config
     local og = M.og
 
@@ -192,18 +192,17 @@ local function reset_field(spec)
 end
 
 ---@param err string
-local function print_error(err)
-    vim.notify("Videre Settings Error: " .. err, vim.log.levels.ERROR)
+---@param level number|nil
+local function print_error(err, level)
+    vim.notify("Videre Settings Error: " .. err, level or vim.log.levels.ERROR)
 end
 
----@param field FieldSpec
+---@param field string
 local function confirm_is_single_char(field)
     local val = get_field(field)
 
     if type(val) ~= "string" or require("videre.utils").StringWidth(val) ~= 1 then
-        print_error(
-            table.concat(field, ".") .. " must be a single character string. Resetting to default value."
-        )
+        print_error(field .. " must be a single character string. Resetting to default value.")
         reset_field(field)
     end
 end
@@ -218,47 +217,35 @@ local function confirm_is_enum(field, enum)
         end
     end
 
-    print_error(
-        table.concat(field, ".") ..
-        " must be of the enum [" .. table.concat(enum, ", ") .. "]. Resetting to default value."
-    )
-
+    print_error(field .. " must be of the enum [" .. table.concat(enum, ", ") .. "]. Resetting to default value.")
     reset_field(field)
 end
 
----@param field FieldSpec
+---@param field string
 ---@param min integer
 ---@param max integer
 local function confirm_is_integer_in_range(field, min, max)
     local val = get_field(field)
 
     if type(val) ~= "number" or val % 1 ~= 0 or val < min or val > max then
-        print_error(
-            table.concat(field, ".") ..
-            " must be an integer in range [" .. min .. ", " .. max .. "]. Resetting to default value."
-        )
-
+        print_error(field .. " must be an integer in range [" .. min .. ", " .. max .. "]. Resetting to default value.")
         reset_field(field)
     end
 end
 
----@param field FieldSpec
+---@param field string
 ---@param min number
 ---@param max number
 local function confirm_is_number_in_range(field, min, max)
     local val = get_field(field)
 
     if type(val) ~= "number" or val < min or val > max then
-        print_error(
-            table.concat(field, ".") ..
-            " must be an float in range [" .. min .. ", " .. max .. "]. Resetting to default value."
-        )
-
+        print_error(field .. " must be an float in range [" .. min .. ", " .. max .. "]. Resetting to default value.")
         reset_field(field)
     end
 end
 
----@param field FieldSpec
+---@param field string
 local function confirm_is_valid_keymap(field)
     local val = get_field(field)
 
@@ -272,64 +259,84 @@ local function confirm_is_valid_keymap(field)
         end
     end
 
-    print_error(
-        table.concat(field, ".") ..
-        " must be a valid keymap. Resetting to default value."
-    )
-
+    print_error(field .. " must be a valid keymap. Resetting to default value.")
     reset_field(field)
 end
+
+local function validate_opts(opts, default, prefix)
+    prefix = prefix or ""
+
+    for key, value in pairs(opts) do
+        local def = default[key]
+
+        if def == nil then
+            local msg =
+                table.concat({ "Invalid option passed to Videre setup: %s%s.",
+                    "This may be a result of using deprecated options in setup.",
+                    "Please run `:help videre-options` for more information." }, "\n")
+                :format(prefix, key)
+            print_error(msg, vim.log.levels.WARN)
+        end
+
+        if type(value) == "table" and type(def) == "table" then
+            validate_opts(value, def, prefix .. key .. ".")
+        end
+    end
+end
+
 
 ---@param config  VidereConfig
 function M.Setup(config)
     M.og = M.config
     M.config = vim.tbl_deep_extend("force", M.config, config)
 
-    confirm_is_single_char({ "key_space" })
-    confirm_is_single_char({ "collapse_indication_character" })
-    confirm_is_single_char({ "value_space" })
-    confirm_is_single_char({ "outside_space" })
+    validate_opts(M.config, M.og)
 
-    confirm_is_enum({ "column_alignment" }, { "top", "center", "bottom" })
-    confirm_is_enum({ "key_alignment" }, { "left", "center", "right" })
-    confirm_is_enum({ "value_alignment" }, { "left", "center", "right" })
+    confirm_is_single_char("key_space")
+    confirm_is_single_char("collapse_indication_character")
+    confirm_is_single_char("value_space")
+    confirm_is_single_char("outside_space")
 
-    confirm_is_integer_in_range({ "connection_spacing" }, 0, 99)
-    confirm_is_integer_in_range({ "cell_spacing" }, 0, 99)
-    confirm_is_integer_in_range({ "max_cell_lines" }, 1, 999)
+    confirm_is_enum("column_alignment", { "top", "center", "bottom" })
+    confirm_is_enum("key_alignment", { "left", "center", "right" })
+    confirm_is_enum("value_alignment", { "left", "center", "right" })
 
-    confirm_is_enum({ "box_style" }, { "sharp", "rounded", "bold", "double" })
-    confirm_is_enum({ "line_style" }, { "sharp", "rounded", "bold", "double" })
+    confirm_is_integer_in_range("connection_spacing", 0, 99)
+    confirm_is_integer_in_range("cell_spacing", 0, 99)
+    confirm_is_integer_in_range("max_cell_lines", 1, 999)
 
-    confirm_is_integer_in_range({ "editor_window_width" }, 6, 999)
+    confirm_is_enum("box_style", { "sharp", "rounded", "bold", "double" })
+    confirm_is_enum("line_style", { "sharp", "rounded", "bold", "double" })
 
-    confirm_is_enum({ "editor_type" }, { "split", "floating" })
+    confirm_is_integer_in_range("editor_window_width", 6, 999)
 
-    confirm_is_integer_in_range({ "floating_editor_style", "margin" }, 0, 99)
-    confirm_is_enum({ "floating_editor_style", "border" }, { "rounded", "double", "shadow", "none" })
-    confirm_is_integer_in_range({ "floating_editor_style", "zindex" }, 0, 99)
+    confirm_is_enum("editor_type", { "split", "floating" })
 
-    confirm_is_enum({ "split_editor_style", "side" }, { "left", "default", "right" })
-    confirm_is_number_in_range({ "split_editor_style", "fill_percentage" }, 0.1, 0.9)
+    confirm_is_integer_in_range("floating_editor_style.margin", 0, 99)
+    confirm_is_enum("floating_editor_style.border", { "rounded", "double", "shadow", "none" })
+    confirm_is_integer_in_range("floating_editor_style.zindex", 0, 99)
 
-    confirm_is_integer_in_range({ "sidescrolloff" }, 0, 999)
-    confirm_is_integer_in_range({ "scrolloff" }, 0, 999)
+    confirm_is_enum("split_editor_style.side", { "left", "default", "right" })
+    confirm_is_number_in_range("split_editor_style.fill_percentage", 0.1, 0.9)
 
-    confirm_is_valid_keymap({ "keymaps", "expand" })
-    confirm_is_valid_keymap({ "keymaps", "collapse" })
-    confirm_is_valid_keymap({ "keymaps", "jump_forward" })
-    confirm_is_valid_keymap({ "keymaps", "jump_back" })
-    confirm_is_valid_keymap({ "keymaps", "jump_down" })
-    confirm_is_valid_keymap({ "keymaps", "jump_up" })
-    confirm_is_valid_keymap({ "keymaps", "set_as_root" })
-    confirm_is_valid_keymap({ "keymaps", "return_to_parent_table" })
-    confirm_is_valid_keymap({ "keymaps", "change_key" })
-    confirm_is_valid_keymap({ "keymaps", "change_value" })
-    confirm_is_valid_keymap({ "keymaps", "delete_value" })
-    confirm_is_valid_keymap({ "keymaps", "add_value" })
-    confirm_is_valid_keymap({ "keymaps", "change_type" })
-    confirm_is_valid_keymap({ "keymaps", "help" })
-    confirm_is_valid_keymap({ "keymaps", "close_window" })
+    confirm_is_integer_in_range("sidescrolloff", 0, 999)
+    confirm_is_integer_in_range("scrolloff", 0, 999)
+
+    confirm_is_valid_keymap("keymaps.expand")
+    confirm_is_valid_keymap("keymaps.collapse")
+    confirm_is_valid_keymap("keymaps.jump_forward")
+    confirm_is_valid_keymap("keymaps.jump_back")
+    confirm_is_valid_keymap("keymaps.jump_down")
+    confirm_is_valid_keymap("keymaps.jump_up")
+    confirm_is_valid_keymap("keymaps.set_as_root")
+    confirm_is_valid_keymap("keymaps.return_to_parent_table")
+    confirm_is_valid_keymap("keymaps.change_key")
+    confirm_is_valid_keymap("keymaps.change_value")
+    confirm_is_valid_keymap("keymaps.delete_value")
+    confirm_is_valid_keymap("keymaps.add_value")
+    confirm_is_valid_keymap("keymaps.change_type")
+    confirm_is_valid_keymap("keymaps.help")
+    confirm_is_valid_keymap("keymaps.close_window")
 end
 
 return M
