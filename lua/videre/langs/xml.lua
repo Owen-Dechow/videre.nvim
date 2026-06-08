@@ -17,6 +17,14 @@ if not tree_found then
     return nil
 end
 
+
+local M = {
+    name = "XML",
+    encode = nil,
+    decode = function(xml_text)
+        local handler = tree:new()
+        local parser = xml.parser(handler)
+
 M[1] = { "xml" }
 
 ---@type LangSpec
