@@ -5,8 +5,11 @@
 ---@field ft string
 ---@field ValueAsString fun(val: VidereValue, type: VidereValueTypeName, is_key: boolean): string
 ---@field ParseVal (fun(text: string): DataObj)|nil
+---@field val_exe string[]
 ---@field ParseKey (fun(text: string): DataObj)|nil
+---@field key_exe string[]
 ---@field ParseKeyVal (fun(text: string): [string, DataObj])|nil
+---@field key_val_exe string[]
 
 ---@type table<string, LangSpec>
 local M = {}

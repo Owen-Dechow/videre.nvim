@@ -147,13 +147,13 @@ function M.MakeChangeKeyMapping(buf, videre_tbl, layer_n, cell_n, val_n)
         local old = cell.values[val_n][1]
 
         editing.MakeEditFloat({
-            hint = { 'Enter new key' },
+            hint = videre_tbl.lang_spec.key_exe,
             ft = videre_tbl.lang_spec.ft,
             on_submit = function(key)
                 local ok, res = pcall(videre_tbl.lang_spec.ParseKey, key)
 
                 if not ok then
-                    vim.notify("Videre Editing Error: " .. res, vim.log.levels.ERROR)
+                    vim.notify("Videre Editing Error: " .. tostring(res):gsub("^.-:%d+: ", ""), vim.log.levels.ERROR)
                     return
                 end
 
@@ -185,13 +185,13 @@ function M.MakeChangeValueMapping(buf, videre_tbl, layer_n, cell_n, val_n)
         local key = cell.values[val_n][1]
 
         editing.MakeEditFloat({
-            hint = { "Enter new value" },
+            hint = videre_tbl.lang_spec.val_exe,
             ft = videre_tbl.lang_spec.ft,
             on_submit = function(val)
                 local ok, res = pcall(videre_tbl.lang_spec.ParseVal, val)
 
                 if not ok then
-                    vim.notify("Videre Editing Error: " .. res, vim.log.levels.ERROR)
+                    vim.notify("Videre Editing Error: " .. tostring(res):gsub("^.-:%d+: ", ""), vim.log.levels.ERROR)
                     return
                 end
 
@@ -256,13 +256,13 @@ function M.MakeAddValueMapping(buf, videre_tbl, layer_n, cell_n, val_n)
 
         if cell.type == "object" then
             editing.MakeEditFloat({
-                hint = { 'Enter new key and value', },
-            ft = videre_tbl.lang_spec.ft,
+                hint = videre_tbl.lang_spec.key_val_exe,
+                ft = videre_tbl.lang_spec.ft,
                 on_submit = function(input)
                     local ok, res = pcall(videre_tbl.lang_spec.ParseKeyVal, input)
 
                     if not ok then
-                        vim.notify(res, vim.log.levels.ERROR)
+                        vim.notify("Videre Editing Error: " .. tostring(res):gsub("^.-:%d+: ", ""), vim.log.levels.ERROR)
                         return
                     end
 
@@ -280,15 +280,13 @@ function M.MakeAddValueMapping(buf, videre_tbl, layer_n, cell_n, val_n)
         else
             -- Add array value
             editing.MakeEditFloat({
-                hint = {
-                    "Enter new value (valid " .. videre_tbl.lang_spec.name .. "):",
-                },
-            ft = videre_tbl.lang_spec.ft,
+                hint = videre_tbl.lang_spec.val_exe,
+                ft = videre_tbl.lang_spec.ft,
 
                 on_submit = function(val)
                     local ok, res = pcall(videre_tbl.lang_spec.ParseVal, val)
                     if not ok then
-                        vim.notify(res, vim.log.levels.ERROR)
+                        vim.notify("Videre Editing Error: " .. tostring(res):gsub("^.-:%d+: ", ""), vim.log.levels.ERROR)
                         return
                     end
 

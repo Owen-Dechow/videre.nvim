@@ -1,27 +1,29 @@
-test = "This is some test data"
-
-# empty_table is an empty inline table
-empty_table = {}
-
-# empty_array is an empty array
+test = 1979-05-27T07:32:00
 empty_array = []
 
+[example]
+empty_table = []
+
 [example.nested_table]
+array = ["data", ""]
+long_array_example = [
+    "text_a",
+    "text_b",
+    "text_c",
+    "text_d",
+    "text_e",
+    "text_f",
+    "text_g",
+    "text_h",
+    [
+        "FIRST",
+    ],
+    [
+        "SECOND",
+    ],
+    [
+        "THIRD",
+    ],
+]
 data = 5
 string = "MY_\\nSTRING"
-array = ["data", ""]
-
-# long_array_example is a top-level array
-long_array_example = [
-  "text_a",
-  "text_b",
-  "text_c",
-  "text_d",
-  "text_e",
-  "text_f",
-  "text_g",
-  "text_h",
-  ["FIRST"],
-  ["SECOND"],
-  ["THIRD"]
-]

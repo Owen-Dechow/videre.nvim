@@ -44,7 +44,7 @@ function M.MakeEditFloat(opts)
     opts = opts or {}
     state.callback = opts.on_submit or function(_) end
 
-    local hint_text = opts.hint or { "Enter value:" }
+    local hint_text = vim.deepcopy(opts.hint or { "Enter value:", })
     hint_text[# hint_text + 1] = string.rep("─", config.editor_window_width)
 
     local width = config.editor_window_width
@@ -67,6 +67,9 @@ function M.MakeEditFloat(opts)
     state.hint_buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(state.hint_buf, 0, -1, false, hint_text)
     vim.bo[state.hint_buf].modifiable = false
+
+    vim.bo[state.hint_buf].filetype = opts.ft or ""
+    vim.bo[state.hint_buf].syntax = opts.ft or ""
 
     state.hint_win = vim.api.nvim_open_win(state.hint_buf, false, {
         relative = "win",

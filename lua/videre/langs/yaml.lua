@@ -90,6 +90,71 @@ local function encode(obj, pad)
     return lines
 end
 
+local function parse_key(text)
+    local ok, res = pcall(yaml.parse, text .. ": ~")
+
+    if not ok then
+        error("Malformed key.")
+    end
+
+    local key
+    for k, _ in pairs(res) do
+        if key ~= nil then
+            error("Malformed key.")
+        end
+
+        key = k
+    end
+
+    return key
+end
+
+local function parse_val(text)
+    local ok, res = pcall(yaml.parse, "- " .. text)
+
+    if not ok then
+        error("Malformed key.")
+    end
+
+    local key, val
+    for k, v in pairs(res) do
+        if key ~= nil then
+            error("Malformed key.")
+        end
+
+        key, val = k, v
+    end
+
+    return val
+end
+
+local function parse_key_val(text)
+    local ok, res = pcall(yaml.parse, text)
+
+    if not ok then
+        error("Malformed key value pair.")
+    end
+
+    local key, val
+    for k, v in pairs(res) do
+        if key ~= nil then
+            error("Too many key value pairs found.")
+        end
+
+        key, val = k, v
+    end
+
+    if key == nil then
+        error("No key passed.")
+    end
+
+    if type(key) ~= "string" then
+        error("Key must be string.")
+    end
+
+    return { key, val }
+end
+
 M[1] = { "yaml" }
 
 ---@type LangSpec
@@ -99,68 +164,12 @@ M[2] = {
     name = "YAML",
     ft = "yaml",
     ValueAsString = val_as_string,
-    ParseKey = function(text)
-        local ok, res = pcall(yaml.parse, text .. ": ~")
-
-        if not ok then
-            error("Malformed key.")
-        end
-
-        local key
-        for k, _ in pairs(res) do
-            if key ~= nil then
-                error("Malformed key.")
-            end
-
-            key = k
-        end
-
-        return key
-    end,
-    ParseVal = function(text)
-        local ok, res = pcall(yaml.parse, "- " .. text)
-
-        if not ok then
-            error("Malformed key.")
-        end
-
-        local key, val
-        for k, v in pairs(res) do
-            if key ~= nil then
-                error("Malformed key.")
-            end
-
-            key, val = k, v
-        end
-
-        return val
-    end,
-    ParseKeyVal = function(text)
-        local ok, res = pcall(yaml.parse, text)
-
-        if not ok then
-            error("Malformed key value pair.")
-        end
-
-        local key, val
-        for k, v in pairs(res) do
-            if key ~= nil then
-                error("Too many key value pairs found.")
-            end
-
-            key, val = k, v
-        end
-
-        if key == nil then
-            error("No key passed.")
-        end
-
-        if type(key) ~= "string" then
-            error("Key must be string.")
-        end
-
-        return { key, val }
-    end
+    ParseKey = parse_key,
+    ParseVal = parse_val,
+    ParseKeyVal = parse_key_val,
+    val_exe = { "# Enter new value:", '"ValueExample", ~/null, [], {}, true/false' },
+    key_exe = { "# Enter new key:", 'keyExample/"alsoKey"' },
+    key_val_exe = { "# Enter key val pair:", 'KeyVal: [1, 2]' },
 }
 
 return M

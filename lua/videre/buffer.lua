@@ -139,7 +139,7 @@ function M.JoinTableToBuffer(buf, videre_table, clear_table)
 
     auto_cmd_for_buf(buf, videre_table, "CursorMoved", function()
         actions.ClearAllMappings(buf, videre_table)
-        on_mouse_move(buf, videre_table)
+        pcall(on_mouse_move, buf, videre_table)
     end)
 
     vim.api.nvim_buf_create_user_command(buf, "VidereCommit", function()
@@ -186,6 +186,10 @@ function M.CreateVidereBuffer(data, from_buffer, lang_spec)
     vim.bo[buf].filetype = "videre"
 
     M.JoinTableToBuffer(buf, videre_table, nil)
+
+    vim.defer_fn(function()
+        tbl.JumpToCellAndValue(videre_table, 1, 1, 1)
+    end, 0)
 
     return buf
 end

@@ -51,3 +51,6 @@ stopinsert
 byteidxcomp
 byteidx
 termcodes
+datetime
+subtables
+datetimes
