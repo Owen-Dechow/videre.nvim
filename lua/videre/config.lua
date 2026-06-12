@@ -276,6 +276,7 @@ local function validate_opts(opts, default, prefix)
                     "Please run `:help videre-options` for more information." }, "\n")
                 :format(prefix, key)
             print_error(msg, vim.log.levels.WARN)
+            opts[key] = nil
         end
 
         if type(value) == "table" and type(def) == "table" then

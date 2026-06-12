@@ -256,7 +256,7 @@ local function render_cell_at_width(cell, tbl, width, is_root)
         local left = i == config.max_cell_lines + 1 and boxes.BoxCollapse() or boxes.VerticalBox()
 
         local key_left_pad, key_string, key_right_pad = utils.ValueAsString(tbl, key, key_col_width, config
-        .key_alignment, config.key_space, true)
+            .key_alignment, config.key_space, true)
 
         local val_left_pad, value_string, val_right_pad = utils.ValueAsString(tbl, val, width - key_col_width - 3,
             config.value_alignment, config.value_space, false)
@@ -660,25 +660,29 @@ end
 
 ---@param tbl VidereTable
 function M.UnbindSubTable(tbl)
-    for _, layer in pairs(tbl.layers) do
+    for _, layer in pairs(tbl.parent_table.layers) do
         for _, cell in pairs(layer.cells) do
             cell.linking_cell = cell.parent_linking_cell
 
             for _, entry in pairs(cell.values) do
                 local val = entry[2]
-                local val_type = utils.ValueType(val)
+                if val.parent_reference then
+                    local val_type = utils.ValueType(val)
 
-                if val_type == "array" or val_type == "object" then
-                    val.layer, val.cell = val.parent_reference[1], val.parent_reference[2]
+                    if val_type == "array" or val_type == "object" then
+                        val.layer, val.cell = val.parent_reference[1], val.parent_reference[2]
+                    end
                 end
             end
 
             for _, entry in pairs(cell.hidden_values) do
                 local val = entry[2]
-                local val_type = utils.ValueType(val)
+                if val.parent_reference then
+                    local val_type = utils.ValueType(val)
 
-                if val_type == "array" or val_type == "object" then
-                    val.layer, val.cell = val.parent_reference[1], val.parent_reference[2]
+                    if val_type == "array" or val_type == "object" then
+                        val.layer, val.cell = val.parent_reference[1], val.parent_reference[2]
+                    end
                 end
             end
         end
