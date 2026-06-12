@@ -81,7 +81,7 @@ end
 local function on_mouse_move(buf, videre_table)
     local layer_n, cell_n, val_n = utils.GetHoveredCell(videre_table)
 
-    highlighting.Clear(buf)
+    highlighting.Clear(buf, true)
 
     if layer_n and cell_n then
         local layer = videre_table.layers[layer_n]
@@ -98,7 +98,7 @@ local function on_mouse_move(buf, videre_table)
         vim.api.nvim_buf_set_lines(buf, 0, 1, false, { statusline.GetStatuslineString(videre_table) })
     end)
 
-    highlighting.HighlightBuffer(buf, videre_table)
+    highlighting.HighlightBuffer(buf, videre_table, true)
 end
 
 ---@param buf integer
@@ -118,13 +118,13 @@ end
 function M.Redraw(buf, videre_table)
     local out_lines = tbl.RenderTableToString(videre_table)
 
-    highlighting.Clear(buf)
+    highlighting.Clear(buf, false)
 
     run_edit(buf, function()
         vim.api.nvim_buf_set_lines(buf, 1, -1, false, out_lines)
     end)
 
-    highlighting.HighlightBuffer(buf, videre_table)
+    highlighting.HighlightBuffer(buf, videre_table, false)
 end
 
 ---@param buf integer

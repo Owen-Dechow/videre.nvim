@@ -3,7 +3,8 @@ local utils = require "videre.utils"
 M = {}
 
 local videre_special = "Special"
-local ns = vim.api.nvim_create_namespace("Videre")
+local ns = vim.api.nvim_create_namespace("VidereBase")
+local ns_s = vim.api.nvim_create_namespace("VidereStatus")
 
 ---@param pos [integer, integer]
 ---@param buf integer
@@ -24,33 +25,33 @@ function M.HighlightFocusedCell(buf, cell, left)
         return convert_col_to_bytes(pos, buf)
     end
 
-    vim.hl.range(buf, ns, videre_special, B { cell.top_render_line, left },
+    vim.hl.range(buf, ns_s, videre_special, B { cell.top_render_line, left },
         B { cell.top_render_line, left + cell.render_width })
 
     for i, _ in ipairs(cell.values) do
         local line = cell.top_render_line + i
 
-        vim.hl.range(buf, ns, videre_special, B { line, left },
+        vim.hl.range(buf, ns_s, videre_special, B { line, left },
             B { line, left + 1 })
 
-        vim.hl.range(buf, ns, videre_special, B { line, left + cell.key_col_width + 1 },
+        vim.hl.range(buf, ns_s, videre_special, B { line, left + cell.key_col_width + 1 },
             B { line, left + cell.key_col_width + 2 })
 
-        vim.hl.range(buf, ns, videre_special, B { line, left + cell.render_width - 1 },
+        vim.hl.range(buf, ns_s, videre_special, B { line, left + cell.render_width - 1 },
             B { line, left + cell.render_width })
     end
 
-    vim.hl.range(buf, ns, videre_special, B { cell.top_render_line + #cell.values + 1, left },
+    vim.hl.range(buf, ns_s, videre_special, B { cell.top_render_line + #cell.values + 1, left },
         B { cell.top_render_line + #cell.values + 1, left + cell.render_width })
 
     if #cell.hidden_values > 0 then
-        vim.hl.range(buf, ns, videre_special,
+        vim.hl.range(buf, ns_s, videre_special,
             B { cell.top_render_line + #cell.values + 2, left },
             B { cell.top_render_line + #cell.values + 2, left + cell.render_width })
     end
 
     local mouse_row = vim.api.nvim_win_get_cursor(0)[1] - 1
-    vim.hl.range(buf, ns, "CursorLine", B { mouse_row, left },
+    vim.hl.range(buf, ns_s, "CursorLine", B { mouse_row, left },
         B { mouse_row, left + cell.render_width })
 end
 
@@ -85,15 +86,15 @@ local function highlight_statusline(buf)
 
     local s, e = text:find("^%s*(%+?Videre)")
     if s then
-        vim.hl.range(buf, ns, "Keyword", { 0, s - 1 }, { 0, e })
+        vim.hl.range(buf, ns_s, "Keyword", { 0, s - 1 }, { 0, e })
     end
 
     for bs, be in text:gmatch("()%[.-%]()") do
-        vim.hl.range(buf, ns, "Special", { 0, bs - 1 }, { 0, be })
+        vim.hl.range(buf, ns_s, "Special", { 0, bs - 1 }, { 0, be })
     end
 
     for ps, pe in text:gmatch("()%b()()") do
-        vim.hl.range(buf, ns, "Identifier", { 0, ps - 1 }, { 0, pe })
+        vim.hl.range(buf, ns_s, "Identifier", { 0, ps - 1 }, { 0, pe })
     end
 end
 
@@ -144,11 +145,14 @@ end
 
 ---@param buf integer
 ---@param tbl VidereTable
-function M.HighlightBuffer(buf, tbl)
-    for _, layer in pairs(tbl.layers) do
-        for _, cell in pairs(layer.cells) do
-            if not cell.is_hidden then
-                highlight_cell_values(buf, tbl, cell, layer.left_render_col)
+---@param statusline_only boolean
+function M.HighlightBuffer(buf, tbl, statusline_only)
+    if not statusline_only then
+        for _, layer in pairs(tbl.layers) do
+            for _, cell in pairs(layer.cells) do
+                if not cell.is_hidden then
+                    highlight_cell_values(buf, tbl, cell, layer.left_render_col)
+                end
             end
         end
     end
@@ -157,8 +161,13 @@ function M.HighlightBuffer(buf, tbl)
 end
 
 ---@param buf integer
-function M.Clear(buf)
-    vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
+---@param statusline_only boolean
+function M.Clear(buf, statusline_only)
+    if not statusline_only then
+        vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
+    end
+
+    vim.api.nvim_buf_clear_namespace(buf, ns_s, 0, -1)
 end
 
 return M
