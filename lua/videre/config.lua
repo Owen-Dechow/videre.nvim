@@ -160,6 +160,10 @@ M.config = {
     ---@comment Scrolloff for Videre window (int: [0, 999])
     ---@type integer
     scrolloff = 10,
+
+    ---@comment Set the indexing base i.e. 0, 1 or whatever else you want
+    ---@type integer
+    index_base = 0,
 }
 
 ---@param field string
@@ -338,6 +342,8 @@ function M.Setup(config)
     confirm_is_valid_keymap("keymaps.change_type")
     confirm_is_valid_keymap("keymaps.help")
     confirm_is_valid_keymap("keymaps.close_window")
+
+    confirm_is_integer_in_range("index_base", -999, 999)
 end
 
 return M

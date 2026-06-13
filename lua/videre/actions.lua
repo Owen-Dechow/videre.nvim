@@ -340,7 +340,7 @@ function M.MakeChangeTypeMapping(buf, videre_tbl, layer_n, cell_n)
                 local key, val = v[1], v[2]
                 local val_type = utils.ValueType(val)
 
-                local new_key = "i_" .. tostring(key)
+                local new_key = "i_" .. tostring(key - 1 + config.index_base)
 
                 cell.data[key] = nil
                 if val_type == "array" or val_type == "object" then

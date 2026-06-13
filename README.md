@@ -229,6 +229,10 @@ https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
     ---@comment Scrolloff for Videre window (int: [0, 999])
     ---@type integer
     scrolloff = 10,
+
+    ---@comment Set the indexing base i.e. 0, 1 or whatever else you want (int: [-999, 999])
+    ---@type integer
+    index_base = 0,
 }
 ```
 

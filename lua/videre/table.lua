@@ -4,6 +4,42 @@ local config = require("videre.config").config
 
 local M = {}
 
+---@param s string|integer
+---@return (string|integer)[]
+local function natural_sort_key(s)
+    local parts = {}
+
+    if type(s) == "number" then
+        return { s }
+    end
+
+    for text, num in s:gmatch("(%a*)(%d*)") do
+        if text ~= "" then table.insert(parts, text) end
+        if num ~= "" then table.insert(parts, tonumber(num)) end
+    end
+    return parts
+end
+
+---@param a string|integer
+---@param b string|integer
+---@return boolean
+local function natural_less(a, b)
+    local pa = natural_sort_key(a)
+    local pb = natural_sort_key(b)
+    for i = 1, math.max(#pa, #pb) do
+        local ca = pa[i]
+        local cb = pb[i]
+        if ca == nil then return true end
+        if cb == nil then return false end
+        if type(ca) ~= type(cb) then
+            -- number chunks sort before string chunks
+            return type(ca) == "number"
+        end
+        if ca ~= cb then return ca < cb end
+    end
+    return false
+end
+
 ---@param data DataObj
 ---@param cell_title string|nil
 ---@param tbl VidereTable
@@ -33,26 +69,7 @@ local function add_data_cell_to_table_layer(data, cell_title, tbl, layer_number,
     local i = 1
 
     local keys = vim.tbl_keys(data)
-    table.sort(keys, function(a, b)
-        local na = tonumber(a)
-        local nb = tonumber(b)
-
-        -- If both are numbers, compare numerically
-        if na and nb then
-            return na < nb
-        end
-
-        -- If only one is numeric, sort numbers first (optional)
-        if na and not nb then
-            return true
-        elseif nb and not na then
-            return false
-        end
-
-        -- Otherwise, compare alphabetically
-        return a < b
-    end)
-
+    table.sort(keys, natural_less)
 
     for _, key in ipairs(keys) do
         local value = data[key]
@@ -251,6 +268,10 @@ local function render_cell_at_width(cell, tbl, width, is_root)
             vert = boxes.BoxConnect()
         else
             vert = boxes.VerticalBox()
+        end
+
+        if type(key) == "number" then
+            key = key - 1 + config.index_base
         end
 
         local left = i == config.max_cell_lines + 1 and boxes.BoxCollapse() or boxes.VerticalBox()
