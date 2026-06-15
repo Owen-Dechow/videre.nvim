@@ -61,6 +61,9 @@ M.config = {
     ---@type integer
     editor_window_width = 60,
 
+    ---@comment Number of spaces each tab character expands to (int: [1,16])
+    ---@type integer
+    tab_width = 4,
     keymaps = {
         ---@comment Expand lines beyond `max_cell_lines`
         ---@type string
@@ -314,6 +317,7 @@ function M.Setup(config)
     confirm_is_enum("line_style", { "sharp", "rounded", "bold", "double" })
 
     confirm_is_integer_in_range("editor_window_width", 6, 999)
+    confirm_is_integer_in_range("tab_width", 1, 16)
 
     confirm_is_enum("editor_type", { "split", "floating" })
 

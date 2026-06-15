@@ -141,12 +141,26 @@ function M.DataToVidereTable(data, from_buffer, is_saved, lang_spec)
     return tbl
 end
 
+---@param str string
+---@return string[]
+local function display_lines(str)
+    str = str:gsub("\\r", "")
+    str = str:gsub("\\t", string.rep(" ", config.tab_width))
+    return vim.split(str, "\\n", { plain = true })
+end
+
 ---@param val VidereValue
 ---@param tbl VidereTable
 ---@param is_key boolean
 ---@return integer
 local function get_value_width(val, tbl, is_key)
-    return utils.StringWidth(tbl.lang_spec.ValueAsString(val, utils.ValueType(val), is_key));
+    local str = tbl.lang_spec.ValueAsString(val, utils.ValueType(val), is_key)
+    local max_w = 0
+    for _, line in ipairs(display_lines(str)) do
+        local w = utils.StringWidth(line)
+        if w > max_w then max_w = w end
+    end
+    return max_w
 end
 
 ---@param cell VidereCell
@@ -204,14 +218,22 @@ local function get_layer_min_width(layer, tbl)
 end
 
 ---@param layer VidereLayer
+---@param tbl VidereTable
 ---@return integer
-local function get_layer_min_height(layer)
+local function get_layer_min_height(layer, tbl)
     local layer_height = 0
     for _, cell in pairs(layer.cells) do
         local cell_height = 0
         if not cell.is_hidden then
-            for _ in ipairs(cell.values) do
-                cell_height = cell_height + 1
+            for _, entry in ipairs(cell.values) do
+                local val = entry[2]
+                local val_type = utils.ValueType(val)
+                if val_type == "string" then
+                    local str = tbl.lang_spec.ValueAsString(val, val_type, false)
+                    cell_height = cell_height + #display_lines(str)
+                else
+                    cell_height = cell_height + 1
+                end
             end
 
             cell_height = cell_height + 2
@@ -236,7 +258,7 @@ end
 local function get_table_min_height(tbl)
     local min_height = 0
     for _, layer in pairs(tbl.layers) do
-        local layer_height = get_layer_min_height(layer)
+        local layer_height = get_layer_min_height(layer, tbl)
         if min_height < layer_height then
             min_height = layer_height
         end
@@ -279,8 +301,12 @@ local function render_cell_at_width(cell, tbl, width, is_root)
         local key_left_pad, key_string, key_right_pad = utils.ValueAsString(tbl, key, key_col_width, config
             .key_alignment, config.key_space, true)
 
-        local val_left_pad, value_string, val_right_pad = utils.ValueAsString(tbl, val, width - key_col_width - 3,
-            config.value_alignment, config.value_space, false)
+        local val_col_width = width - key_col_width - 3
+        local val_display = tbl.lang_spec.ValueAsString(val, val_type, false)
+        local val_lines = display_lines(val_display)
+
+        local val_left_pad, value_string, val_right_pad = utils.PadLine(val_lines[1], val_col_width,
+            config.value_alignment, config.value_space)
 
         entry.val_left_pad, entry.val_right_pad = val_left_pad, val_right_pad
         entry.key_left_pad, entry.key_right_pad = key_left_pad, key_right_pad
@@ -288,6 +314,13 @@ local function render_cell_at_width(cell, tbl, width, is_root)
         rows[#rows + 1] = left .. key_string ..
             boxes.VerticalBox() ..
             value_string .. vert
+
+        local blank_key = string.rep(config.key_space, key_col_width)
+        for li = 2, #val_lines do
+            local _, cont_string, _ = utils.PadLine(val_lines[li], val_col_width,
+                config.value_alignment, config.value_space)
+            rows[#rows + 1] = boxes.VerticalBox() .. blank_key .. boxes.VerticalBox() .. cont_string .. vert
+        end
     end
 
     if #cell.hidden_values > 0 then

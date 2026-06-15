@@ -68,19 +68,14 @@ function M.NumberWidth(val)
     return #tostring(val)
 end
 
----@param tbl VidereTable
----@param val VidereValue
+---@param str string
 ---@param width integer
 ---@param align RowAlignment
 ---@param space string
----@param is_key boolean
 ---@return integer, string, integer
-function M.ValueAsString(tbl, val, width, align, space, is_key)
-    local t = M.ValueType(val)
-    local str = tbl.lang_spec.ValueAsString(val, t, is_key)
-
+function M.PadLine(str, width, align, space)
     local current_width = M.StringWidth(str)
-    local pad = width - current_width
+    local pad = math.max(0, width - current_width)
 
     if align == "left" then
         return 0, str .. string.rep(space, pad), pad
@@ -91,6 +86,20 @@ function M.ValueAsString(tbl, val, width, align, space, is_key)
         local right = pad - left
         return left, string.rep(space, left) .. str .. string.rep(space, right), right
     end
+end
+
+---@param tbl VidereTable
+---@param val VidereValue
+---@param width integer
+---@param align RowAlignment
+---@param space string
+---@param is_key boolean
+---@return integer, string, integer
+function M.ValueAsString(tbl, val, width, align, space, is_key)
+    local t = M.ValueType(val)
+    local str = tbl.lang_spec.ValueAsString(val, t, is_key)
+    local first_line = vim.split(str, "\\n", { plain = true })[1]
+    return M.PadLine(first_line, width, align, space)
 end
 
 ---@param statusline_offset integer
