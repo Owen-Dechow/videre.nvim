@@ -73,6 +73,9 @@ M.config = {
     ---@type boolean
     expand_newlines = false,
 
+    ---@comment Max display width of string values in characters; 0 disables wrapping (int: [0,9999])
+    ---@type integer
+    max_line_width = 0,
     keymaps = {
         ---@comment Expand lines beyond `max_cell_lines`
         ---@type string
@@ -345,6 +348,7 @@ function M.Setup(config)
 
     confirm_is_integer_in_range("editor_window_width", 6, 999)
     confirm_is_integer_in_range("tab_width", 1, 16)
+    confirm_is_integer_in_range("max_line_width", 0, 9999)
 
     confirm_is_enum("editor_type", { "split", "floating" })
 

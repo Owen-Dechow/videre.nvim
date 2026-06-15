@@ -62,6 +62,26 @@ function M.StringWidth(val)
     return vim.str_utfindex(val, "utf-16")
 end
 
+---@param str string
+---@param width integer
+---@param align RowAlignment
+---@param space string
+---@return integer, string, integer
+function M.PadLine(str, width, align, space)
+    local current_width = M.StringWidth(str)
+    local pad = width - current_width
+
+    if align == "left" then
+        return 0, str .. string.rep(space, pad), pad
+    elseif align == "right" then
+        return pad, string.rep(space, pad) .. str, 0
+    else
+        local left = math.floor(pad / 2)
+        local right = pad - left
+        return left, string.rep(space, left) .. str .. string.rep(space, right), right
+    end
+end
+
 ---@param val integer
 ---@return integer
 function M.NumberWidth(val)

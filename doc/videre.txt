@@ -104,6 +104,7 @@ Videre accepts a configuration table. All fields are optional.
 
     editor_window_width = 60,
     tab_width = 4,
+    max_line_width = 0,  -- wrap string values at this many chars; 0 disables (int: [0, 9999])
 
     keymaps = {
         expand = "E",
