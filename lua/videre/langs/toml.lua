@@ -2,11 +2,7 @@ local utils = require "videre.utils"
 
 local M = {}
 
-local module_found, toml = pcall(require, "toml2lua")
-
-if not module_found then
-    return nil
-end
+local toml = require "toml2lua"
 
 M[1] = { "toml" }
 

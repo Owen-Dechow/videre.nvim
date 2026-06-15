@@ -16,10 +16,10 @@ local M = {}
 
 ---@param lib string
 local function add_lang(lib)
-    ---@type [string[], LangSpec]|nil
-    local result = require(lib)
+    ---@type boolean, [string[], LangSpec]
+    local ok, result = pcall(require, lib)
 
-    if type(result) == "table" then
+    if ok then
         for _, lang in pairs(result[1]) do
             M[lang] = result[2]
         end
