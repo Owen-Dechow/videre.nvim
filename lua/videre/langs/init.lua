@@ -19,7 +19,7 @@ local function add_lang(lib)
     ---@type [string[], LangSpec]|nil
     local result = require(lib)
 
-    if result ~= nil then
+    if type(result) == "table" then
         for _, lang in pairs(result[1]) do
             M[lang] = result[2]
         end
