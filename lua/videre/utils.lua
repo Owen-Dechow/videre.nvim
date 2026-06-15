@@ -150,12 +150,37 @@ function M.GetHoveredCell(tbl)
     local cell = layer.cells[cell_in]
 
     ---@type integer|nil|"expand"
-    local value_on = mrow - cell.top_render_line
+    local raw_offset = mrow - cell.top_render_line
+    local value_on
 
-    if value_on == #cell.values + 1 and #cell.hidden_values > 0 then
-        value_on = "expand"
-    elseif value_on > #cell.values or value_on == 0 then
+    if raw_offset == 0 then
         value_on = nil
+    else
+        local found = nil
+        for j, entry in ipairs(cell.values) do
+            if entry.row_offset then
+                local next_offset = (cell.values[j + 1] and cell.values[j + 1].row_offset)
+                    or ((cell.total_display_rows or #cell.values) + 1)
+                if raw_offset >= entry.row_offset and raw_offset < next_offset then
+                    found = j
+                    break
+                end
+            else
+                -- fallback: original single-row-per-value assumption
+                if raw_offset == j then
+                    found = j
+                    break
+                end
+            end
+        end
+
+        if found then
+            value_on = found
+        elseif raw_offset == (cell.total_display_rows or #cell.values) + 1 and #cell.hidden_values > 0 then
+            value_on = "expand"
+        else
+            value_on = nil
+        end
     end
 
     return layer_in, cell_in, value_on

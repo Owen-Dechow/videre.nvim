@@ -281,6 +281,7 @@ local function render_cell_at_width(cell, tbl, width, is_root)
     string.rep(boxes.HorizontalBox(), width - key_col_width - 3) ..
     boxes.TopRight() }
 
+    local row_offset = 1
     for i, entry in ipairs(cell.values) do
         local key, val = entry[1], entry[2]
         local val_type = utils.ValueType(val)
@@ -310,6 +311,7 @@ local function render_cell_at_width(cell, tbl, width, is_root)
 
         entry.val_left_pad, entry.val_right_pad = val_left_pad, val_right_pad
         entry.key_left_pad, entry.key_right_pad = key_left_pad, key_right_pad
+        entry.row_offset = row_offset
 
         rows[#rows + 1] = left .. key_string ..
             boxes.VerticalBox() ..
@@ -321,7 +323,10 @@ local function render_cell_at_width(cell, tbl, width, is_root)
                 config.value_alignment, config.value_space)
             rows[#rows + 1] = boxes.VerticalBox() .. blank_key .. boxes.VerticalBox() .. cont_string .. vert
         end
+
+        row_offset = row_offset + #val_lines
     end
+    cell.total_display_rows = row_offset - 1
 
     if #cell.hidden_values > 0 then
         rows[#rows + 1] = boxes.BoxCollapse() ..
@@ -440,13 +445,11 @@ local function aggregate_connection_objects_for_layer(layer, tbl)
 
     for _, cell in ipairs(layer.cells) do
         if not cell.is_hidden then
-            local line_offset = 0
             for _, entry in ipairs(cell.values) do
                 local val = entry[2]
-                line_offset = line_offset + 1
                 local value_type = utils.ValueType(val)
                 if value_type == "array" or value_type == "object" then
-                    val.from_render_line = cell.top_render_line + line_offset
+                    val.from_render_line = cell.top_render_line + (entry.row_offset or 0)
                     val.to_render_line = tbl.layers[val.layer].cells[val.cell].top_render_line
 
                     ---@type boolean|nil
@@ -590,12 +593,13 @@ function M.JumpToCellAndValue(tbl, layer_num, cell_num, val)
 
     local jump = true
     if val == "expand" then
-        row = row + config.max_cell_lines + 2
+        row = row + (cell.total_display_rows or config.max_cell_lines) + 2
     elseif val ~= nil and val > #cell.values then
-        row = row + #cell.values + 2
+        row = row + (cell.total_display_rows or #cell.values) + 2
         jump = false
     elseif val ~= nil then
-        row = row + val + 1
+        local entry = cell.values[val]
+        row = row + (entry and entry.row_offset or val) + 1
     else
         row = row + 2
     end
