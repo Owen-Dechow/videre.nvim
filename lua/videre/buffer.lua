@@ -7,6 +7,58 @@ local actions = require "videre.actions"
 
 local M = {}
 
+local header_ns = vim.api.nvim_create_namespace("videre_header")
+
+---@param text string
+---@return {[1]: string, [2]: string}[]
+local function make_header_chunks(text)
+    local segments = {}
+
+    local s, e = text:find("^%s*%+?Videre")
+    if s then segments[#segments + 1] = { s, e, "Keyword" } end
+
+    for bs, be in text:gmatch("()%[.-%]()") do
+        segments[#segments + 1] = { bs, be - 1, "Special" }
+    end
+
+    for ps, pe in text:gmatch("()%b()()") do
+        segments[#segments + 1] = { ps, pe - 1, "Identifier" }
+    end
+
+    table.sort(segments, function(a, b) return a[1] < b[1] end)
+
+    local chunks = {}
+    local pos = 1
+    for _, seg in ipairs(segments) do
+        if pos < seg[1] then
+            chunks[#chunks + 1] = { text:sub(pos, seg[1] - 1), "StatusLine" }
+        end
+        chunks[#chunks + 1] = { text:sub(seg[1], seg[2]), seg[3] }
+        pos = seg[2] + 1
+    end
+    if pos <= #text then
+        chunks[#chunks + 1] = { text:sub(pos), "StatusLine" }
+    end
+
+    if #chunks == 0 then
+        chunks[#chunks + 1] = { text, "StatusLine" }
+    end
+
+    return chunks
+end
+
+---@param buf integer
+---@param videre_table VidereTable
+local function update_header(buf, videre_table)
+    vim.api.nvim_buf_clear_namespace(buf, header_ns, 0, -1)
+    local topline = vim.fn.line("w0") -- 1-indexed first visible line
+    local header_str = statusline.GetStatuslineString(videre_table)
+    vim.api.nvim_buf_set_extmark(buf, header_ns, topline - 1, 0, {
+        virt_lines_above = true,
+        virt_lines = { make_header_chunks(header_str) },
+    })
+end
+
 ---@param buf integer
 ---@param fn fun()
 local function run_edit(buf, fn)
@@ -107,11 +159,7 @@ local function on_mouse_move(buf, videre_table)
     actions.MakeCloseWindowMapping(buf, videre_table)
     actions.MakeOpenHelpMenuMapping(buf)
 
-    run_edit(buf, function()
-        vim.api.nvim_buf_set_lines(buf, 0, 1, false, { statusline.GetStatuslineString(videre_table) })
-    end)
-
-    highlighting.HighlightBuffer(buf, videre_table, true)
+    update_header(buf, videre_table)
 end
 
 ---@param buf integer
@@ -134,7 +182,7 @@ function M.Redraw(buf, videre_table)
     highlighting.Clear(buf, false)
 
     run_edit(buf, function()
-        vim.api.nvim_buf_set_lines(buf, 1, -1, false, out_lines)
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, out_lines)
     end)
 
     highlighting.HighlightBuffer(buf, videre_table, false)
@@ -154,6 +202,18 @@ function M.JoinTableToBuffer(buf, videre_table, clear_table)
         actions.ClearAllMappings(buf, videre_table)
         on_mouse_move(buf, videre_table)
     end)
+
+    vim.api.nvim_create_autocmd("WinScrolled", {
+        group = videre_table.grp,
+        callback = function(ev)
+            local win_id = tonumber(ev.match)
+            if vim.api.nvim_win_is_valid(win_id) and vim.api.nvim_win_get_buf(win_id) == buf then
+                vim.api.nvim_win_call(win_id, function()
+                    update_header(buf, videre_table)
+                end)
+            end
+        end,
+    })
 
     vim.api.nvim_buf_create_user_command(buf, "VidereCommit", function()
         local new_lines = videre_table.lang_spec.Encode(videre_table.data)
