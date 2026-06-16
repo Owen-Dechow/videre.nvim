@@ -7,11 +7,9 @@ local actions = require "videre.actions"
 
 local M = {}
 
-local header_ns = vim.api.nvim_create_namespace("videre_header")
-
 ---@param text string
----@return {[1]: string, [2]: string}[]
-local function make_header_chunks(text)
+---@return string winbar format string
+local function make_header_winbar(text)
     local segments = {}
 
     local s, e = text:find("^%s*%+?Videre")
@@ -27,37 +25,33 @@ local function make_header_chunks(text)
 
     table.sort(segments, function(a, b) return a[1] < b[1] end)
 
-    local chunks = {}
+    local parts = {}
     local pos = 1
     for _, seg in ipairs(segments) do
         if pos < seg[1] then
-            chunks[#chunks + 1] = { text:sub(pos, seg[1] - 1), "StatusLine" }
+            parts[#parts + 1] = "%#StatusLine#" .. text:sub(pos, seg[1] - 1):gsub("%%", "%%%%")
         end
-        chunks[#chunks + 1] = { text:sub(seg[1], seg[2]), seg[3] }
+        parts[#parts + 1] = "%#" .. seg[3] .. "#" .. text:sub(seg[1], seg[2]):gsub("%%", "%%%%")
         pos = seg[2] + 1
     end
     if pos <= #text then
-        chunks[#chunks + 1] = { text:sub(pos), "StatusLine" }
+        parts[#parts + 1] = "%#StatusLine#" .. text:sub(pos):gsub("%%", "%%%%")
     end
 
-    if #chunks == 0 then
-        chunks[#chunks + 1] = { text, "StatusLine" }
+    if #parts == 0 then
+        parts[#parts + 1] = "%#StatusLine#" .. text:gsub("%%", "%%%%")
     end
 
-    return chunks
+    return table.concat(parts)
 end
 
 ---@param buf integer
 ---@param videre_table VidereTable
 local function update_header(buf, videre_table)
-    vim.api.nvim_buf_clear_namespace(buf, header_ns, 0, -1)
-    local topline = vim.fn.line("w0") -- 1-indexed first visible line
-    if topline < 1 then return end
-    local header_str = statusline.GetStatuslineString(videre_table)
-    vim.api.nvim_buf_set_extmark(buf, header_ns, topline - 1, 0, {
-        virt_lines_above = true,
-        virt_lines = { make_header_chunks(header_str) },
-    })
+    local winbar = make_header_winbar(statusline.GetStatuslineString(videre_table))
+    for _, win in ipairs(vim.fn.win_findbuf(buf)) do
+        vim.wo[win].winbar = winbar
+    end
 end
 
 ---@param buf integer
@@ -202,18 +196,6 @@ function M.JoinTableToBuffer(buf, videre_table, clear_table)
         actions.ClearAllMappings(buf, videre_table)
         on_mouse_move(buf, videre_table)
     end)
-
-    vim.api.nvim_create_autocmd("WinScrolled", {
-        group = videre_table.grp,
-        callback = function(ev)
-            local win_id = tonumber(ev.match)
-            if vim.api.nvim_win_is_valid(win_id) and vim.api.nvim_win_get_buf(win_id) == buf then
-                vim.api.nvim_win_call(win_id, function()
-                    update_header(buf, videre_table)
-                end)
-            end
-        end,
-    })
 
     vim.api.nvim_buf_create_user_command(buf, "VidereCommit", function()
         local new_lines = videre_table.lang_spec.Encode(videre_table.data)
