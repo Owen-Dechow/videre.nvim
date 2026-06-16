@@ -52,6 +52,7 @@ end
 local function update_header(buf, videre_table)
     vim.api.nvim_buf_clear_namespace(buf, header_ns, 0, -1)
     local topline = vim.fn.line("w0") -- 1-indexed first visible line
+    if topline < 1 then return end
     local header_str = statusline.GetStatuslineString(videre_table)
     vim.api.nvim_buf_set_extmark(buf, header_ns, topline - 1, 0, {
         virt_lines_above = true,
@@ -138,6 +139,7 @@ local function on_mouse_move(buf, videre_table)
         vim.api.nvim_feedkeys("j", "n", false)
     end
 
+    update_header(buf, videre_table)
     highlighting.Clear(buf, true)
 
     if layer_n and cell_n then
@@ -158,8 +160,6 @@ local function on_mouse_move(buf, videre_table)
 
     actions.MakeCloseWindowMapping(buf, videre_table)
     actions.MakeOpenHelpMenuMapping(buf)
-
-    update_header(buf, videre_table)
 end
 
 ---@param buf integer
