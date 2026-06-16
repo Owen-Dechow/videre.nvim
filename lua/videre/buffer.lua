@@ -42,7 +42,7 @@ local function make_header_winbar(text)
         parts[#parts + 1] = "%#StatusLine#" .. text:gsub("%%", "%%%%")
     end
 
-    return table.concat(parts)
+    return table.concat(parts) .. "%<"
 end
 
 ---@param buf integer
