@@ -7,9 +7,13 @@ local actions = require "videre.actions"
 
 local M = {}
 
+local header_ns = vim.api.nvim_create_namespace("videre_header")
+-- maps videre win -> { win = overlay_win, buf = overlay_buf }
+local header_floats = {}
+
 ---@param text string
----@return string winbar format string
-local function make_header_winbar(text)
+---@return { text: string, hl: string }[]
+local function make_header_chunks(text)
     local segments = {}
 
     local s, e = text:find("^%s*%+?Videre")
@@ -25,32 +29,105 @@ local function make_header_winbar(text)
 
     table.sort(segments, function(a, b) return a[1] < b[1] end)
 
-    local parts = {}
+    local chunks = {}
     local pos = 1
     for _, seg in ipairs(segments) do
         if pos < seg[1] then
-            parts[#parts + 1] = "%#StatusLine#" .. text:sub(pos, seg[1] - 1):gsub("%%", "%%%%")
+            chunks[#chunks + 1] = { text = text:sub(pos, seg[1] - 1), hl = "StatusLine" }
         end
-        parts[#parts + 1] = "%#" .. seg[3] .. "#" .. text:sub(seg[1], seg[2]):gsub("%%", "%%%%")
+        chunks[#chunks + 1] = { text = text:sub(seg[1], seg[2]), hl = seg[3] }
         pos = seg[2] + 1
     end
     if pos <= #text then
-        parts[#parts + 1] = "%#StatusLine#" .. text:sub(pos):gsub("%%", "%%%%")
+        chunks[#chunks + 1] = { text = text:sub(pos), hl = "StatusLine" }
     end
 
-    if #parts == 0 then
-        parts[#parts + 1] = "%#StatusLine#" .. text:gsub("%%", "%%%%")
+    if #chunks == 0 then
+        chunks[#chunks + 1] = { text = text, hl = "StatusLine" }
     end
 
-    return table.concat(parts) .. "%<"
+    return chunks
+end
+
+---@param overlay_buf integer
+---@param chunks { text: string, hl: string }[]
+local function render_chunks_to_buf(overlay_buf, chunks)
+    local text = ""
+    for _, c in ipairs(chunks) do text = text .. c.text end
+
+    vim.bo[overlay_buf].modifiable = true
+    vim.api.nvim_buf_set_lines(overlay_buf, 0, -1, false, { text })
+    vim.bo[overlay_buf].modifiable = false
+
+    vim.api.nvim_buf_clear_namespace(overlay_buf, header_ns, 0, -1)
+    local col = 0
+    for _, c in ipairs(chunks) do
+        local byte_len = #c.text
+        vim.api.nvim_buf_set_extmark(overlay_buf, header_ns, 0, col, {
+            end_col = col + byte_len,
+            hl_group = c.hl,
+        })
+        col = col + byte_len
+    end
+end
+
+---@param videre_win integer
+---@return integer overlay_win, integer overlay_buf
+local function create_header_float(videre_win)
+    local overlay_buf = vim.api.nvim_create_buf(false, true)
+    vim.bo[overlay_buf].modifiable = false
+
+    local win_cfg = vim.api.nvim_win_get_config(videre_win)
+    local has_border = type(win_cfg.border) == "table" and #win_cfg.border > 0
+    local border_offset = has_border and 1 or 0
+    local win_width = vim.api.nvim_win_get_width(videre_win)
+    local overlay_width = win_width - border_offset * 2
+
+    local overlay_win = vim.api.nvim_open_win(overlay_buf, false, {
+        relative = "win",
+        win = videre_win,
+        row = border_offset,
+        col = border_offset,
+        width = overlay_width,
+        height = 1,
+        style = "minimal",
+        focusable = false,
+        zindex = (win_cfg.zindex or 10) + 1,
+    })
+
+    vim.wo[overlay_win].wrap = false
+    vim.wo[overlay_win].winhl = "Normal:StatusLine"
+
+    -- clean up overlay when the Videre window closes
+    vim.api.nvim_create_autocmd("WinClosed", {
+        pattern = tostring(videre_win),
+        once = true,
+        callback = function()
+            if vim.api.nvim_win_is_valid(overlay_win) then
+                vim.api.nvim_win_close(overlay_win, true)
+            end
+            header_floats[videre_win] = nil
+        end,
+    })
+
+    return overlay_win, overlay_buf
 end
 
 ---@param buf integer
 ---@param videre_table VidereTable
 local function update_header(buf, videre_table)
-    local winbar = make_header_winbar(statusline.GetStatuslineString(videre_table))
-    for _, win in ipairs(vim.fn.win_findbuf(buf)) do
-        vim.wo[win].winbar = winbar
+    local chunks = make_header_chunks(statusline.GetStatuslineString(videre_table))
+
+    for _, videre_win in ipairs(vim.fn.win_findbuf(buf)) do
+        local state = header_floats[videre_win]
+
+        if not state or not vim.api.nvim_win_is_valid(state.win) then
+            local overlay_win, overlay_buf = create_header_float(videre_win)
+            state = { win = overlay_win, buf = overlay_buf }
+            header_floats[videre_win] = state
+        end
+
+        render_chunks_to_buf(state.buf, chunks)
     end
 end
 
