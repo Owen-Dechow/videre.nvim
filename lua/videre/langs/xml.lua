@@ -1,20 +1,12 @@
-local utils = require "videre.utils"
+local utils = require("videre.utils")
 
 local M = {}
 
-local module_found, xml = pcall(require, "xml2lua")
+local xml = require("xml2lua")
 
-if not module_found then
-    return nil
-end
-
-local tree_found, tree = pcall(require, "xmlhandler.tree")
-if not tree_found then
-    tree_found, tree = pcall(require, "xml2lua.xmlhandler.tree")
-end
-
-if not tree_found then
-    return nil
+local ok, tree = pcall(require, "xmlhandler.tree")
+if not ok then
+    tree = require "xml2lua.xmlhandler.tree"
 end
 
 M[1] = { "xml" }

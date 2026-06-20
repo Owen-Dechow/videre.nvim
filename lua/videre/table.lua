@@ -576,6 +576,25 @@ function M.JumpToCellAndValue(tbl, layer_num, cell_num, val)
     if jump then
         vim.cmd [[normal! w]]
     end
+
+    local win_height = vim.api.nvim_win_get_height(0)
+    local win_width = vim.api.nvim_win_get_width(0)
+
+    local topline
+    if cell.height <= win_height then
+        topline = math.max(1, cell.top_render_line - math.floor((win_height - cell.height) / 2))
+    else
+        topline = cell.top_render_line
+    end
+
+    local leftcol
+    if layer.width <= win_width then
+        leftcol = math.max(0, (col - 1) - math.floor((win_width - layer.width) / 2))
+    else
+        leftcol = col - 1
+    end
+
+    vim.fn.winrestview({ topline = topline, leftcol = leftcol })
 end
 
 ---@param tbl VidereTable

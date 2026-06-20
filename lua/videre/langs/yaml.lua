@@ -2,11 +2,7 @@ local utils = require "videre.utils"
 
 local M = {}
 
-local module_found, yaml = pcall(require, "yaml_parser")
-
-if not module_found then
-    return nil
-end
+local yaml = require "yaml_parser"
 
 ---@param val VidereValue
 ---@param t VidereValueTypeName

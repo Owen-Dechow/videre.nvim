@@ -19,7 +19,7 @@ function M.ClearAllMappings(buf, videre_tbl)
 
     for _, mapping in pairs(config.keymaps) do
         vim.keymap.set("n", mapping, function()
-        end, { buf = buf })
+        end, { buffer = buf })
     end
 end
 
@@ -38,7 +38,7 @@ function M.MakeExpandMapping(buf, videre_tbl, cell)
 
         ---@diagnostic disable-next-line: param-type-mismatch
         tbl.JumpToCellAndValue(videre_tbl, layer_num, cell_num, val)
-    end, { buf = buf })
+    end, { buffer = buf })
 end
 
 ---@param buf integer
@@ -56,7 +56,7 @@ function M.MakeCollapseMapping(buf, videre_tbl, cell)
 
         ---@diagnostic disable-next-line: param-type-mismatch
         tbl.JumpToCellAndValue(videre_tbl, layer_num, cell_num, val)
-    end, { buf = buf })
+    end, { buffer = buf })
 end
 
 ---@param buf integer
@@ -67,7 +67,7 @@ function M.MakeJumpMapping(buf, videre_tbl, conn)
 
     vim.keymap.set("n", config.keymaps.jump_forward, function()
         tbl.JumpToCellAndValue(videre_tbl, conn.layer, conn.cell, 1)
-    end, { buf = buf })
+    end, { buffer = buf })
 end
 
 ---@param buf integer
@@ -78,7 +78,7 @@ function M.MakeJumpBackMapping(buf, videre_tbl, cell)
 
     vim.keymap.set("n", config.keymaps.jump_back, function()
         tbl.JumpToCellAndValue(videre_tbl, cell.linking_cell[1], cell.linking_cell[2], cell.linking_cell[3])
-    end, { buf = buf })
+    end, { buffer = buf })
 end
 
 ---@param buf integer
@@ -90,7 +90,7 @@ function M.MakeJumpUpMapping(buf, videre_tbl, layer, cell)
 
     vim.keymap.set("n", config.keymaps.jump_up, function()
         tbl.JumpToCellAndValue(videre_tbl, layer, cell, 1)
-    end, { buf = buf })
+    end, { buffer = buf })
 end
 
 ---@param buf integer
@@ -102,7 +102,7 @@ function M.MakeJumpDownMapping(buf, videre_tbl, layer, cell)
 
     vim.keymap.set("n", config.keymaps.jump_down, function()
         tbl.JumpToCellAndValue(videre_tbl, layer, cell, 1)
-    end, { buf = buf })
+    end, { buffer = buf })
 end
 
 ---@param buf integer
@@ -116,7 +116,7 @@ function M.MakeSetRootMapping(buf, videre_tbl, layer, cell)
         local new_table = tbl.MakeSubTable(videre_tbl, layer, cell)
         require("videre.buffer").JoinTableToBuffer(buf, new_table)
         tbl.JumpToCellAndValue(new_table, 1, 1, 1)
-    end, { buf = buf })
+    end, { buffer = buf })
 end
 
 ---@param buf integer
@@ -131,7 +131,7 @@ function M.MakeReturnToParentTableMapping(buf, videre_tbl)
             require("videre.buffer").JoinTableToBuffer(buf, main_table)
             tbl.JumpToCellAndValue(main_table, 1, 1, 1)
         end
-    end, { buf = buf })
+    end, { buffer = buf })
 end
 
 ---@param buf integer
@@ -396,14 +396,14 @@ function M.MakeCloseWindowMapping(buf, videre_table)
                 end
             })
         end
-    end, { buf = buf, nowait = true })
+    end, { buffer = buf, nowait = true })
 end
 
 ---@param buf integer
 function M.MakeOpenHelpMenuMapping(buf)
     vim.keymap.set("n", config.keymaps.help, function()
         help.OpenHelpMenu()
-    end, { buf = buf })
+    end, { buffer = buf })
 end
 
 return M
