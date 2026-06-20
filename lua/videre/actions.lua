@@ -396,7 +396,7 @@ function M.MakeCloseWindowMapping(buf, videre_table)
                 end
             })
         end
-    end, { buffer = buf })
+    end, { buffer = buf, nowait = true })
 end
 
 ---@param buf integer
