@@ -88,6 +88,60 @@ function M.PadLine(str, width, align, space)
     end
 end
 
+---Split a ValueAsString display string into visual rows.
+---Walks str one character at a time via str_idx. On a backslash, the next
+---character is consumed as a pair into current_line so that an escaped
+---backslash (\\) never causes the character after it to be misread as a
+---\\n/\\r/\\t marker. Completed rows are flushed into lines[]:
+---  \\n  → flush current_line into lines, reset current_line
+---  \\r\\n → treated as a single newline split (consume all 4 chars)
+---  \\r  → keep literal \r in current_line (standalone CR, e.g. old Mac endings or regex patterns)
+---  \\t  → append tab_width spaces to current_line
+---  \\   → append "\\\\" to current_line (escaped backslash; next char skipped)
+---  \\X  → append both chars unchanged to current_line
+---@param str string
+---@param tab_width integer
+---@return string[]
+function M.DisplayLines(str, tab_width)
+    local lines = {}
+    local current_line = {}
+    local str_idx = 1
+    while str_idx <= #str do
+        local c = str:sub(str_idx, str_idx)
+        if c == [[\]] then
+            local next = str:sub(str_idx + 1, str_idx + 1)
+            if next == [[\]] then
+                current_line[#current_line + 1] = [[\\]]
+                str_idx = str_idx + 2
+            elseif next == "n" then
+                lines[#lines + 1] = table.concat(current_line)
+                current_line = {}
+                str_idx = str_idx + 2
+            elseif next == "r" then
+                if str:sub(str_idx + 2, str_idx + 3) == [[\n]] then
+                    lines[#lines + 1] = table.concat(current_line)
+                    current_line = {}
+                    str_idx = str_idx + 4
+                else
+                    current_line[#current_line + 1] = c .. next
+                    str_idx = str_idx + 2
+                end
+            elseif next == "t" then
+                current_line[#current_line + 1] = string.rep(" ", tab_width)
+                str_idx = str_idx + 2
+            else
+                current_line[#current_line + 1] = c .. next
+                str_idx = str_idx + 2
+            end
+        else
+            current_line[#current_line + 1] = c
+            str_idx = str_idx + 1
+        end
+    end
+    lines[#lines + 1] = table.concat(current_line)
+    return lines
+end
+
 ---@param tbl VidereTable
 ---@param val VidereValue
 ---@param width integer
@@ -98,7 +152,11 @@ end
 function M.ValueAsString(tbl, val, width, align, space, is_key)
     local t = M.ValueType(val)
     local str = tbl.lang_spec.ValueAsString(val, t, is_key)
-    local first_line = vim.split(str, "\\n", { plain = true })[1]
+    if is_key then
+        return M.PadLine(str, width, align, space)
+    end
+    local tab_width = require("videre.config").config.tab_width
+    local first_line = M.DisplayLines(str, tab_width)[1]
     return M.PadLine(first_line, width, align, space)
 end
 

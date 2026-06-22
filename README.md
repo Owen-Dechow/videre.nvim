@@ -130,6 +130,10 @@ https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
     ---@type integer
     editor_window_width = 60,
 
+    ---@comment Number of spaces a \\t escape renders as (int: [1, 16])
+    ---@type integer
+    tab_width = 4,
+
     keymaps = {
         ---@comment Expand lines beyond `max_cell_lines`
         ---@type string

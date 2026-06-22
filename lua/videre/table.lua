@@ -141,13 +141,6 @@ function M.DataToVidereTable(data, from_buffer, is_saved, lang_spec)
     return tbl
 end
 
----@param str string
----@return string[]
-local function display_lines(str)
-    str = str:gsub("\\r", "")
-    str = str:gsub("\\t", string.rep(" ", config.tab_width))
-    return vim.split(str, "\\n", { plain = true })
-end
 
 ---@param val VidereValue
 ---@param tbl VidereTable
@@ -155,8 +148,11 @@ end
 ---@return integer
 local function get_value_width(val, tbl, is_key)
     local str = tbl.lang_spec.ValueAsString(val, utils.ValueType(val), is_key)
+    if is_key then
+        return utils.StringWidth(str)
+    end
     local max_w = 0
-    for _, line in ipairs(display_lines(str)) do
+    for _, line in ipairs(utils.DisplayLines(str, config.tab_width)) do
         local w = utils.StringWidth(line)
         if w > max_w then max_w = w end
     end
@@ -230,7 +226,7 @@ local function get_layer_min_height(layer, tbl)
                 local val_type = utils.ValueType(val)
                 if val_type == "string" then
                     local str = tbl.lang_spec.ValueAsString(val, val_type, false)
-                    cell_height = cell_height + #display_lines(str)
+                    cell_height = cell_height + #utils.DisplayLines(str, config.tab_width)
                 else
                     cell_height = cell_height + 1
                 end
@@ -304,7 +300,7 @@ local function render_cell_at_width(cell, tbl, width, is_root)
 
         local val_col_width = width - key_col_width - 3
         local val_display = tbl.lang_spec.ValueAsString(val, val_type, false)
-        local val_lines = display_lines(val_display)
+        local val_lines = utils.DisplayLines(val_display, config.tab_width)
 
         local val_left_pad, value_string, val_right_pad = utils.PadLine(val_lines[1], val_col_width,
             config.value_alignment, config.value_space)
