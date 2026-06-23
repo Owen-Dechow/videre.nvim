@@ -320,26 +320,6 @@ function M.JoinTableToBuffer(buf, videre_table, clear_table)
         end,
     })
 
-    -- close the overlay when the Videre buffer is replaced in a window (e.g. :buffer other)
-    -- without the window itself closing; BufWinEnter recreates it if the buffer returns
-    vim.api.nvim_create_autocmd("BufWinLeave", {
-        buffer = buf,
-        group = videre_table.grp,
-        callback = function()
-            local leaving_win = vim.api.nvim_get_current_win()
-            local state = header_floats[leaving_win]
-            if state then
-                if vim.api.nvim_win_is_valid(state.win) then
-                    vim.api.nvim_win_close(state.win, true)
-                end
-                if vim.api.nvim_buf_is_valid(state.buf) then
-                    vim.api.nvim_buf_delete(state.buf, { force = true })
-                end
-                header_floats[leaving_win] = nil
-            end
-        end,
-    })
-
     -- Clear group (including global resize autocmds) and close any lingering
     -- overlay floats when the buffer is deleted or wiped. The window may stay
     -- open with a different buffer, so the float must be explicitly removed.
