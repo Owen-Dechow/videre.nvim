@@ -64,6 +64,15 @@ M.config = {
     ---@comment Number of spaces each tab character expands to (int: [1,16])
     ---@type integer
     tab_width = 4,
+
+    ---@comment Toggle expansion of \t character
+    ---@type boolean
+    expand_tabs = false,
+
+    ---@comment Toggle expansion of \n and \r\n characters
+    ---@type boolean
+    expand_newlines = false,
+
     keymaps = {
         ---@comment Expand lines beyond `max_cell_lines`
         ---@type string
@@ -270,6 +279,16 @@ local function confirm_is_valid_keymap(field)
     reset_field(field)
 end
 
+---@param field string
+local function confirm_is_boolean(field)
+    local val = get_field(field)
+
+    if type(val) ~= "boolean" then
+        print_error(field .. " must be a valid keymap. Resetting to default value.")
+        reset_field(field)
+    end
+end
+
 local function validate_opts(opts, default, prefix)
     prefix = prefix or ""
 
@@ -348,6 +367,9 @@ function M.Setup(config)
     confirm_is_valid_keymap("keymaps.close_window")
 
     confirm_is_integer_in_range("index_base", -999, 999)
+
+    confirm_is_boolean("expand_tabs")
+    confirm_is_boolean("expand_newlines")
 end
 
 return M

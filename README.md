@@ -130,9 +130,17 @@ https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
     ---@type integer
     editor_window_width = 60,
 
-    ---@comment Number of spaces a \\t escape renders as (int: [1, 16])
+    ---@comment Number of spaces each tab character expands to (int: [1,16])
     ---@type integer
     tab_width = 4,
+
+    ---@comment Toggle expansion of \t character
+    ---@type boolean
+    expand_tabs = false,
+
+    ---@comment Toggle expansion of \n and \r\n characters
+    ---@type boolean
+    expand_newlines = false,
 
     keymaps = {
         ---@comment Expand lines beyond `max_cell_lines`
@@ -234,7 +242,7 @@ https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
     ---@type integer
     scrolloff = 10,
 
-    ---@comment Set the indexing base i.e. 0, 1 or whatever else you want (int: [-999, 999])
+    ---@comment Set the indexing base i.e. 0, 1 or whatever else you want
     ---@type integer
     index_base = 0,
 }

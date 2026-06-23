@@ -28,14 +28,16 @@
 ---@field data DataObj
 ---@field data_ref DataObjectRef
 ---@field key_col_width integer|nil
+---@field total_display_rows integer|nil
 
 ---@class VidereEntry
 ---@field [1] integer|string
----@field [2] VidereValue 
+---@field [2] VidereValue
 ---@field val_left_pad integer|nil
 ---@field key_left_pad integer|nil
 ---@field val_right_pad integer|nil
 ---@field key_right_pad integer|nil
+---@field row_offset integer|nil
 
 ---@alias CellValRef [integer, integer, integer]
 

@@ -100,9 +100,13 @@ end
 ---  \\   → append "\\\\" to current_line (escaped backslash; next char skipped)
 ---  \\X  → append both chars unchanged to current_line
 ---@param str string
----@param tab_width integer
 ---@return string[]
-function M.DisplayLines(str, tab_width)
+function M.DisplayLines(str)
+    local config = require("videre.config").config
+    local tab_width = config.tab_width
+    local expand_tabs = config.expand_tabs
+    local expand_newlines = config.expand_newlines
+
     local lines = {}
     local current_line = {}
     local str_idx = 1
@@ -113,11 +117,11 @@ function M.DisplayLines(str, tab_width)
             if next == [[\]] then
                 current_line[#current_line + 1] = [[\\]]
                 str_idx = str_idx + 2
-            elseif next == "n" then
+            elseif next == "n" and expand_newlines then
                 lines[#lines + 1] = table.concat(current_line)
                 current_line = {}
                 str_idx = str_idx + 2
-            elseif next == "r" then
+            elseif next == "r" and expand_newlines then
                 if str:sub(str_idx + 2, str_idx + 3) == [[\n]] then
                     lines[#lines + 1] = table.concat(current_line)
                     current_line = {}
@@ -126,7 +130,7 @@ function M.DisplayLines(str, tab_width)
                     current_line[#current_line + 1] = c .. next
                     str_idx = str_idx + 2
                 end
-            elseif next == "t" then
+            elseif next == "t" and expand_tabs then
                 current_line[#current_line + 1] = string.rep(" ", tab_width)
                 str_idx = str_idx + 2
             else
