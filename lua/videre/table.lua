@@ -148,6 +148,10 @@ end
 
 ---@param str string
 ---@return string[]
+-- Wraps by Unicode codepoint count (strchars), not display width or grapheme clusters;
+-- combining characters and ZWJ sequences may be split across rows.
+-- When expand_newlines=false, a \X escape pair that straddles a wrap boundary will
+-- lose its SpecialChar highlight on both halves (cosmetic only, display is unaffected).
 local function wrap_and_split(str)
     local lines = utils.DisplayLines(str)
     local max_w = config.max_line_width
