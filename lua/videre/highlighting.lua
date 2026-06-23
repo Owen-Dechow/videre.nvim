@@ -6,10 +6,10 @@ M = {}
 local function wrap_and_split(str)
     local max_w = config.max_line_width
     if max_w <= 0 then
-        return vim.split(str, "\n", { plain = true })
+        return utils.DisplayLines(str)
     end
     local result = {}
-    for _, seg_line in ipairs(vim.split(str, "\n", { plain = true })) do
+    for _, seg_line in ipairs(utils.DisplayLines(str)) do
         local char_len = vim.fn.strchars(seg_line)
         if char_len <= max_w then
             result[#result + 1] = seg_line

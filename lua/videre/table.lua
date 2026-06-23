@@ -149,7 +149,7 @@ end
 ---@param str string
 ---@return string[]
 local function wrap_and_split(str)
-    local lines = vim.split(str, "\n", { plain = true })
+    local lines = utils.DisplayLines(str)
     local max_w = config.max_line_width
     if max_w <= 0 then return lines end
     local result = {}
