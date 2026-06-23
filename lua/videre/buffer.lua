@@ -289,6 +289,18 @@ function M.JoinTableToBuffer(buf, videre_table, clear_table)
         on_mouse_move(buf, videre_table)
     end)
 
+    -- fires each time the Videre buffer enters any window; creates the header
+    -- for that window and refreshes cursor state (handles both initial open and
+    -- the case where the buffer is later shown in an additional split)
+    vim.api.nvim_create_autocmd("BufWinEnter", {
+        buffer = buf,
+        group = videre_table.grp,
+        callback = function()
+            actions.ClearAllMappings(buf, videre_table)
+            pcall(on_mouse_move, buf, videre_table)
+        end,
+    })
+
     -- not buffer-scoped: VimResized/WinResized fire globally; the Videre
     -- buffer may be visible but not current when the resize happens
     vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
@@ -299,7 +311,31 @@ function M.JoinTableToBuffer(buf, videre_table, clear_table)
                 if state and vim.api.nvim_win_is_valid(state.win) then
                     local win_width = vim.api.nvim_win_get_width(videre_win)
                     vim.api.nvim_win_set_config(state.win, { width = win_width })
+                    vim.api.nvim_win_call(videre_win, function()
+                        local chunks = make_header_chunks(statusline.GetStatuslineString(videre_table))
+                        render_chunks_to_buf(state.buf, chunks)
+                    end)
                 end
+            end
+        end,
+    })
+
+    -- close the overlay when the Videre buffer is replaced in a window (e.g. :buffer other)
+    -- without the window itself closing; BufWinEnter recreates it if the buffer returns
+    vim.api.nvim_create_autocmd("BufWinLeave", {
+        buffer = buf,
+        group = videre_table.grp,
+        callback = function()
+            local leaving_win = vim.api.nvim_get_current_win()
+            local state = header_floats[leaving_win]
+            if state then
+                if vim.api.nvim_win_is_valid(state.win) then
+                    vim.api.nvim_win_close(state.win, true)
+                end
+                if vim.api.nvim_buf_is_valid(state.buf) then
+                    vim.api.nvim_buf_delete(state.buf, { force = true })
+                end
+                header_floats[leaving_win] = nil
             end
         end,
     })
