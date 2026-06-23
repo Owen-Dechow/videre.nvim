@@ -114,6 +114,14 @@ M.config = {
         ---@type string
         change_type = "T",
 
+        ---@comment Undo a change 
+        ---@type string
+        undo = "u",
+
+        ---@comment Redo a change i.e. undo an undo
+        ---@type string
+        redo = "<C-r>",
+
         ---@comment Open help menu
         ---@type string
         help = "g?",

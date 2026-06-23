@@ -122,8 +122,10 @@ end
 ---@param from_buffer integer
 ---@param is_saved boolean
 ---@param lang_spec LangSpec
+---@param states State[]
+---@param state_idx integer
 ---@return VidereTable
-function M.DataToVidereTable(data, from_buffer, is_saved, lang_spec)
+function M.DataToVidereTable(data, from_buffer, is_saved, lang_spec, states, state_idx)
     ---@type VidereTable
     local tbl = {
         layers = {},
@@ -133,7 +135,9 @@ function M.DataToVidereTable(data, from_buffer, is_saved, lang_spec)
         from_buffer = from_buffer,
         is_saved = is_saved,
         available_maps = {},
-        lang_spec = lang_spec
+        lang_spec = lang_spec,
+        state_idx = state_idx,
+        states = states,
     }
 
     add_data_cell_to_table_layer(data, nil, tbl, 1, false, nil, {})
@@ -609,7 +613,14 @@ function M.DataRefToTableRef(tbl, data_ref, val)
     end
 
     local cell_n;
-    for i, cell in ipairs(tbl.layers[layer_n].cells) do
+
+    local layer = tbl.layers[layer_n]
+
+    if not layer then
+        return { 1, 1, 1 }
+    end
+
+    for i, cell in ipairs(layer.cells) do
         if vim.deep_equal(data_ref, cell.data_ref) then
             cell_n = i;
             break
@@ -690,7 +701,9 @@ function M.MakeSubTable(tbl, layer_num, cell_num)
         from_buffer = tbl.from_buffer,
         is_saved = tbl.is_saved,
         available_maps = {},
-        lang_spec = tbl.lang_spec
+        lang_spec = tbl.lang_spec,
+        states = tbl.states,
+        state_idx = tbl.state_idx,
     }
 
     add_cell_to_sub_table(new_tbl, 1, tbl, layer_num, cell_num, nil)
@@ -706,10 +719,10 @@ function M.UnbindSubTable(tbl)
 
             for _, entry in pairs(cell.values) do
                 local val = entry[2]
-                if val.parent_reference then
-                    local val_type = utils.ValueType(val)
+                local val_type = utils.ValueType(val)
 
-                    if val_type == "array" or val_type == "object" then
+                if val_type == "array" or val_type == "object" then
+                    if val.parent_reference then
                         val.layer, val.cell = val.parent_reference[1], val.parent_reference[2]
                     end
                 end
@@ -717,10 +730,10 @@ function M.UnbindSubTable(tbl)
 
             for _, entry in pairs(cell.hidden_values) do
                 local val = entry[2]
-                if val.parent_reference then
-                    local val_type = utils.ValueType(val)
+                local val_type = utils.ValueType(val)
 
-                    if val_type == "array" or val_type == "object" then
+                if val_type == "array" or val_type == "object" then
+                    if val.parent_reference then
                         val.layer, val.cell = val.parent_reference[1], val.parent_reference[2]
                     end
                 end

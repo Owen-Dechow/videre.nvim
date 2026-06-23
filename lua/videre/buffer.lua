@@ -91,6 +91,14 @@ local function on_mouse_move(buf, videre_table)
         highlighting.HighlightFocusedCell(buf, cell, layer.left_render_col)
     end
 
+    if videre_table.state_idx > 1 then
+        actions.MakeUndoMapping(buf, videre_table)
+    end
+
+    if videre_table.state_idx < #videre_table.states then
+        actions.MakeRedoMapping(buf, videre_table)
+    end
+
     actions.MakeCloseWindowMapping(buf, videre_table)
     actions.MakeOpenHelpMenuMapping(buf)
 
@@ -154,13 +162,14 @@ end
 
 ---@param buf integer
 ---@param clear_table VidereTable
----@param data DataObj
 ---@param root DataObjectRef
 ---@param focus DataObjectRef
 ---@param focus_val integer
 ---@param expanded_cells DataObjectRef[]
-function M.JoinDataToBuffer(buf, clear_table, data, root, focus, focus_val, expanded_cells)
-    local videre_table = tbl.DataToVidereTable(data, clear_table.from_buffer, false, clear_table.lang_spec)
+function M.JoinDataToBuffer(buf, clear_table, root, focus, focus_val, expanded_cells)
+    local videre_table = tbl.DataToVidereTable(clear_table.data, clear_table.from_buffer, false, clear_table.lang_spec,
+        clear_table.states, clear_table.state_idx)
+
     tbl.ExpandCellPack(videre_table, expanded_cells)
 
     local root_ref = tbl.DataRefToTableRef(videre_table, root, 1)
@@ -180,7 +189,15 @@ end
 ---@param lang_spec LangSpec
 ---@return integer
 function M.CreateVidereBuffer(data, from_buffer, lang_spec)
-    local videre_table = tbl.DataToVidereTable(data, from_buffer, true, lang_spec)
+    ---@type State
+    local state = {
+        data = vim.deepcopy(data),
+        root = {},
+        focus = {},
+        value = 1,
+    }
+
+    local videre_table = tbl.DataToVidereTable(data, from_buffer, true, lang_spec, { state }, 1)
     local buf = vim.api.nvim_create_buf(false, true)
     vim.bo[buf].modifiable = false
     vim.bo[buf].filetype = "videre"

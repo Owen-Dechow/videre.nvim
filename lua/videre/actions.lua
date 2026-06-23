@@ -12,6 +12,23 @@ local function add_available_map(videre_tbl, map)
     videre_tbl.available_maps[# videre_tbl.available_maps + 1] = map
 end
 
+---@param videre_tbl VidereTable
+---@param focus DataObjectRef
+---@param value integer
+local function add_change(videre_tbl, focus, value)
+    videre_tbl.state_idx = videre_tbl.state_idx + 1
+    videre_tbl.states[videre_tbl.state_idx] = {
+        data = vim.deepcopy(videre_tbl.data),
+        root = videre_tbl.layers[1].cells[1].data_ref,
+        focus = focus,
+        value = value,
+    }
+
+    while #videre_tbl.states > videre_tbl.state_idx do
+        videre_tbl.states[#videre_tbl.states] = nil
+    end
+end
+
 ---@param buf integer
 ---@param videre_tbl VidereTable
 function M.ClearAllMappings(buf, videre_tbl)
@@ -144,7 +161,7 @@ function M.MakeChangeKeyMapping(buf, videre_tbl, layer_n, cell_n, val_n)
 
     vim.keymap.set("n", config.keymaps.change_key, function()
         local cell = videre_tbl.layers[layer_n].cells[cell_n]
-        local old = cell.values[val_n][1]
+        local old_key = cell.values[val_n][1]
 
         editing.MakeEditFloat({
             hint = videre_tbl.lang_spec.key_exe,
@@ -157,15 +174,18 @@ function M.MakeChangeKeyMapping(buf, videre_tbl, layer_n, cell_n, val_n)
                     return
                 end
 
-                cell.data[res] = cell.data[old]
-                cell.data[old] = nil
+
+                local old_val = cell.data[old_key]
+                cell.data[res] = old_val
+                cell.data[old_key] = nil
 
                 local focus = videre_tbl.layers[layer_n].cells[cell_n].data_ref
                 local root = videre_tbl.layers[1].cells[1].data_ref
 
                 local expanded = tbl.FindAllExpandedTables(videre_tbl.parent_table or videre_tbl)
 
-                require("videre.buffer").JoinDataToBuffer(buf, videre_tbl, videre_tbl.data, root, focus, val_n,
+                add_change(videre_tbl, focus, val_n)
+                require("videre.buffer").JoinDataToBuffer(buf, videre_tbl, root, focus, val_n,
                     expanded)
             end
         })
@@ -201,7 +221,8 @@ function M.MakeChangeValueMapping(buf, videre_tbl, layer_n, cell_n, val_n)
                 local root = videre_tbl.layers[1].cells[1].data_ref
                 local expanded = tbl.FindAllExpandedTables(videre_tbl.parent_table or videre_tbl)
 
-                require("videre.buffer").JoinDataToBuffer(buf, videre_tbl, videre_tbl.data, root, focus, val_n, expanded)
+                add_change(videre_tbl, focus, val_n)
+                require("videre.buffer").JoinDataToBuffer(buf, videre_tbl, root, focus, val_n, expanded)
             end
         })
     end, { buffer = buf })
@@ -239,7 +260,8 @@ function M.MakeDeleteValueMapping(buf, videre_tbl, layer_n, cell_n, val_n)
         local root = videre_tbl.layers[1].cells[1].data_ref
         local expanded = tbl.FindAllExpandedTables(videre_tbl.parent_table or videre_tbl)
 
-        require("videre.buffer").JoinDataToBuffer(buf, videre_tbl, videre_tbl.data, root, focus, val_n, expanded)
+        add_change(videre_tbl, focus, val_n - 1)
+        require("videre.buffer").JoinDataToBuffer(buf, videre_tbl, root, focus, val_n - 1, expanded)
     end, { buffer = buf })
 end
 
@@ -272,8 +294,9 @@ function M.MakeAddValueMapping(buf, videre_tbl, layer_n, cell_n, val_n)
                     local root = videre_tbl.layers[1].cells[1].data_ref
                     local expanded = tbl.FindAllExpandedTables(videre_tbl.parent_table or videre_tbl)
 
+                    add_change(videre_tbl, focus, val_n)
                     require("videre.buffer").JoinDataToBuffer(
-                        buf, videre_tbl, videre_tbl.data, root, focus, val_n + 1, expanded
+                        buf, videre_tbl, root, focus, val_n + 1, expanded
                     )
                 end
             })
@@ -296,8 +319,9 @@ function M.MakeAddValueMapping(buf, videre_tbl, layer_n, cell_n, val_n)
                     local root = videre_tbl.layers[1].cells[1].data_ref
                     local expanded = tbl.FindAllExpandedTables(videre_tbl.parent_table or videre_tbl)
 
+                    add_change(videre_tbl, focus, val_n)
                     require("videre.buffer").JoinDataToBuffer(
-                        buf, videre_tbl, videre_tbl.data, root, focus, val_n + 1, expanded
+                        buf, videre_tbl, root, focus, val_n + 1, expanded
                     )
                 end
             })
@@ -367,10 +391,10 @@ function M.MakeChangeTypeMapping(buf, videre_tbl, layer_n, cell_n)
         local root = videre_tbl.layers[1].cells[1].data_ref
         local expanded = tbl.FindAllExpandedTables(videre_tbl.parent_table or videre_tbl)
 
+        add_change(videre_tbl, focus, 1)
         require("videre.buffer").JoinDataToBuffer(
             buf,
             videre_tbl,
-            videre_tbl.data,
             root,
             focus,
             1,
@@ -397,6 +421,36 @@ function M.MakeCloseWindowMapping(buf, videre_table)
             })
         end
     end, { buffer = buf, nowait = true })
+end
+
+---@param buf integer
+---@param videre_table VidereTable
+function M.MakeUndoMapping(buf, videre_table)
+    vim.keymap.set("n", config.keymaps.undo, function()
+        videre_table.state_idx = videre_table.state_idx - 1
+        local state = videre_table.states[videre_table.state_idx]
+        videre_table.data = vim.deepcopy(state.data)
+
+        local expanded = tbl.FindAllExpandedTables(videre_table.parent_table or videre_table)
+        require("videre.buffer").JoinDataToBuffer(buf, videre_table, state.root, state.focus, state.value, expanded)
+    end, { buffer = buf })
+
+    add_available_map(videre_table, config.keymaps.undo)
+end
+
+---@param buf integer
+---@param videre_table VidereTable
+function M.MakeRedoMapping(buf, videre_table)
+    vim.keymap.set("n", config.keymaps.redo, function()
+        videre_table.state_idx = videre_table.state_idx + 1
+        local state = videre_table.states[videre_table.state_idx]
+        videre_table.data = vim.deepcopy(state.data)
+
+        local expanded = tbl.FindAllExpandedTables(videre_table.parent_table or videre_table)
+        require("videre.buffer").JoinDataToBuffer(buf, videre_table, state.root, state.focus, state.value, expanded)
+    end, { buffer = buf })
+
+    add_available_map(videre_table, config.keymaps.redo)
 end
 
 ---@param buf integer

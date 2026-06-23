@@ -6,7 +6,7 @@
 ---| string
 ---| number
 ---| boolean
----| nil
+---| userdata
 ---| DataObj
 
 ---@alias DataObjectRef (string|integer)[]

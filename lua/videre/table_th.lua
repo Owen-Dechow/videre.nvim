@@ -7,6 +7,14 @@
 ---@field is_saved boolean
 ---@field available_maps string[]
 ---@field lang_spec LangSpec
+---@field states State[] 
+---@field state_idx integer
+
+---@class State
+---@field data DataObj
+---@field root DataObjectRef
+---@field focus DataObjectRef
+---@field value integer
 
 ---@class VidereLayer
 ---@field cells VidereCell[]
@@ -31,7 +39,7 @@
 
 ---@class VidereEntry
 ---@field [1] integer|string
----@field [2] VidereValue 
+---@field [2] VidereValue
 ---@field val_left_pad integer|nil
 ---@field key_left_pad integer|nil
 ---@field val_right_pad integer|nil
