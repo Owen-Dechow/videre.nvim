@@ -145,12 +145,22 @@ function M.DataToVidereTable(data, from_buffer, is_saved, lang_spec, states, sta
     return tbl
 end
 
+
 ---@param val VidereValue
 ---@param tbl VidereTable
 ---@param is_key boolean
 ---@return integer
 local function get_value_width(val, tbl, is_key)
-    return utils.StringWidth(tbl.lang_spec.ValueAsString(val, utils.ValueType(val), is_key));
+    local str = tbl.lang_spec.ValueAsString(val, utils.ValueType(val), is_key)
+    if is_key then
+        return utils.StringWidth(str)
+    end
+    local max_w = 0
+    for _, line in ipairs(utils.DisplayLines(str, config.tab_width)) do
+        local w = utils.StringWidth(line)
+        if w > max_w then max_w = w end
+    end
+    return max_w
 end
 
 ---@param cell VidereCell
@@ -208,14 +218,22 @@ local function get_layer_min_width(layer, tbl)
 end
 
 ---@param layer VidereLayer
+---@param tbl VidereTable
 ---@return integer
-local function get_layer_min_height(layer)
+local function get_layer_min_height(layer, tbl)
     local layer_height = 0
     for _, cell in pairs(layer.cells) do
         local cell_height = 0
         if not cell.is_hidden then
-            for _ in ipairs(cell.values) do
-                cell_height = cell_height + 1
+            for _, entry in ipairs(cell.values) do
+                local val = entry[2]
+                local val_type = utils.ValueType(val)
+                if val_type == "string" then
+                    local str = tbl.lang_spec.ValueAsString(val, val_type, false)
+                    cell_height = cell_height + #utils.DisplayLines(str, config.tab_width)
+                else
+                    cell_height = cell_height + 1
+                end
             end
 
             cell_height = cell_height + 2
@@ -240,7 +258,7 @@ end
 local function get_table_min_height(tbl)
     local min_height = 0
     for _, layer in pairs(tbl.layers) do
-        local layer_height = get_layer_min_height(layer)
+        local layer_height = get_layer_min_height(layer, tbl)
         if min_height < layer_height then
             min_height = layer_height
         end
@@ -263,6 +281,7 @@ local function render_cell_at_width(cell, tbl, width, is_root)
     string.rep(boxes.HorizontalBox(), width - key_col_width - 3) ..
     boxes.TopRight() }
 
+    local row_offset = 1
     for i, entry in ipairs(cell.values) do
         local key, val = entry[1], entry[2]
         local val_type = utils.ValueType(val)
@@ -283,16 +302,31 @@ local function render_cell_at_width(cell, tbl, width, is_root)
         local key_left_pad, key_string, key_right_pad = utils.ValueAsString(tbl, key, key_col_width, config
             .key_alignment, config.key_space, true)
 
-        local val_left_pad, value_string, val_right_pad = utils.ValueAsString(tbl, val, width - key_col_width - 3,
-            config.value_alignment, config.value_space, false)
+        local val_col_width = width - key_col_width - 3
+        local val_display = tbl.lang_spec.ValueAsString(val, val_type, false)
+        local val_lines = utils.DisplayLines(val_display, config.tab_width)
+
+        local val_left_pad, value_string, val_right_pad = utils.PadLine(val_lines[1], val_col_width,
+            config.value_alignment, config.value_space)
 
         entry.val_left_pad, entry.val_right_pad = val_left_pad, val_right_pad
         entry.key_left_pad, entry.key_right_pad = key_left_pad, key_right_pad
+        entry.row_offset = row_offset
 
         rows[#rows + 1] = left .. key_string ..
             boxes.VerticalBox() ..
             value_string .. vert
+
+        local blank_key = string.rep(config.key_space, key_col_width)
+        for li = 2, #val_lines do
+            local _, cont_string, _ = utils.PadLine(val_lines[li], val_col_width,
+                config.value_alignment, config.value_space)
+            rows[#rows + 1] = boxes.VerticalBox() .. blank_key .. boxes.VerticalBox() .. cont_string .. vert
+        end
+
+        row_offset = row_offset + #val_lines
     end
+    cell.total_display_rows = row_offset - 1
 
     if #cell.hidden_values > 0 then
         rows[#rows + 1] = boxes.BoxCollapse() ..
@@ -411,13 +445,11 @@ local function aggregate_connection_objects_for_layer(layer, tbl)
 
     for _, cell in ipairs(layer.cells) do
         if not cell.is_hidden then
-            local line_offset = 0
             for _, entry in ipairs(cell.values) do
                 local val = entry[2]
-                line_offset = line_offset + 1
                 local value_type = utils.ValueType(val)
                 if value_type == "array" or value_type == "object" then
-                    val.from_render_line = cell.top_render_line + line_offset
+                    val.from_render_line = cell.top_render_line + (entry.row_offset or 0)
                     val.to_render_line = tbl.layers[val.layer].cells[val.cell].top_render_line
 
                     ---@type boolean|nil
@@ -561,12 +593,13 @@ function M.JumpToCellAndValue(tbl, layer_num, cell_num, val)
 
     local jump = true
     if val == "expand" then
-        row = row + config.max_cell_lines + 2
+        row = row + (cell.total_display_rows or config.max_cell_lines) + 2
     elseif val ~= nil and val > #cell.values then
-        row = row + #cell.values + 2
+        row = row + (cell.total_display_rows or #cell.values) + 2
         jump = false
     elseif val ~= nil then
-        row = row + val + 1
+        local entry = cell.values[val]
+        row = row + (entry and entry.row_offset or val) + 1
     else
         row = row + 2
     end

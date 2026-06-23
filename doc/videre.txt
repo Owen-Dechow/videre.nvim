@@ -103,6 +103,7 @@ Videre accepts a configuration table. All fields are optional.
     line_style = "rounded",
 
     editor_window_width = 60,
+    tab_width = 4,
 
     keymaps = {
         expand = "E",

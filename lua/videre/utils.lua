@@ -68,19 +68,14 @@ function M.NumberWidth(val)
     return #tostring(val)
 end
 
----@param tbl VidereTable
----@param val VidereValue
+---@param str string
 ---@param width integer
 ---@param align RowAlignment
 ---@param space string
----@param is_key boolean
 ---@return integer, string, integer
-function M.ValueAsString(tbl, val, width, align, space, is_key)
-    local t = M.ValueType(val)
-    local str = tbl.lang_spec.ValueAsString(val, t, is_key)
-
+function M.PadLine(str, width, align, space)
     local current_width = M.StringWidth(str)
-    local pad = width - current_width
+    local pad = math.max(0, width - current_width)
 
     if align == "left" then
         return 0, str .. string.rep(space, pad), pad
@@ -91,6 +86,82 @@ function M.ValueAsString(tbl, val, width, align, space, is_key)
         local right = pad - left
         return left, string.rep(space, left) .. str .. string.rep(space, right), right
     end
+end
+
+---Split a ValueAsString display string into visual rows.
+---Walks str one character at a time via str_idx. On a backslash, the next
+---character is consumed as a pair into current_line so that an escaped
+---backslash (\\) never causes the character after it to be misread as a
+---\\n/\\r/\\t marker. Completed rows are flushed into lines[]:
+---  \\n  → flush current_line into lines, reset current_line
+---  \\r\\n → treated as a single newline split (consume all 4 chars)
+---  \\r  → keep literal \r in current_line (standalone CR, e.g. old Mac endings or regex patterns)
+---  \\t  → append tab_width spaces to current_line
+---  \\   → append "\\\\" to current_line (escaped backslash; next char skipped)
+---  \\X  → append both chars unchanged to current_line
+---@param str string
+---@return string[]
+function M.DisplayLines(str)
+    local config = require("videre.config").config
+    local tab_width = config.tab_width
+    local expand_tabs = config.expand_tabs
+    local expand_newlines = config.expand_newlines
+
+    local lines = {}
+    local current_line = {}
+    local str_idx = 1
+    while str_idx <= #str do
+        local c = str:sub(str_idx, str_idx)
+        if c == [[\]] then
+            local next = str:sub(str_idx + 1, str_idx + 1)
+            if next == [[\]] then
+                current_line[#current_line + 1] = [[\\]]
+                str_idx = str_idx + 2
+            elseif next == "n" and expand_newlines then
+                lines[#lines + 1] = table.concat(current_line)
+                current_line = {}
+                str_idx = str_idx + 2
+            elseif next == "r" and expand_newlines then
+                if str:sub(str_idx + 2, str_idx + 3) == [[\n]] then
+                    lines[#lines + 1] = table.concat(current_line)
+                    current_line = {}
+                    str_idx = str_idx + 4
+                else
+                    current_line[#current_line + 1] = c .. next
+                    str_idx = str_idx + 2
+                end
+            elseif next == "t" and expand_tabs then
+                current_line[#current_line + 1] = string.rep(" ", tab_width)
+                str_idx = str_idx + 2
+            else
+                current_line[#current_line + 1] = c .. next
+                str_idx = str_idx + 2
+            end
+        else
+            current_line[#current_line + 1] = c
+            str_idx = str_idx + 1
+        end
+    end
+    lines[#lines + 1] = table.concat(current_line)
+    return lines
+end
+
+---@param tbl VidereTable
+---@param val VidereValue
+---@param width integer
+---@param align RowAlignment
+---@param space string
+---@param is_key boolean
+---@return integer, string, integer
+function M.ValueAsString(tbl, val, width, align, space, is_key)
+    local t = M.ValueType(val)
+    local str = tbl.lang_spec.ValueAsString(val, t, is_key)
+    if is_key then
+        return M.PadLine(str, width, align, space)
+    end
+    local tab_width = require("videre.config").config.tab_width
+    local first_line = M.DisplayLines(str, tab_width)[1]
+    return M.PadLine(first_line, width, align, space)
 end
 
 ---@param statusline_offset integer
@@ -141,12 +212,37 @@ function M.GetHoveredCell(tbl)
     local cell = layer.cells[cell_in]
 
     ---@type integer|nil|"expand"
-    local value_on = mrow - cell.top_render_line
+    local raw_offset = mrow - cell.top_render_line
+    local value_on
 
-    if value_on == #cell.values + 1 and #cell.hidden_values > 0 then
-        value_on = "expand"
-    elseif value_on > #cell.values or value_on == 0 then
+    if raw_offset == 0 then
         value_on = nil
+    else
+        local found = nil
+        for j, entry in ipairs(cell.values) do
+            if entry.row_offset then
+                local next_offset = (cell.values[j + 1] and cell.values[j + 1].row_offset)
+                    or ((cell.total_display_rows or #cell.values) + 1)
+                if raw_offset >= entry.row_offset and raw_offset < next_offset then
+                    found = j
+                    break
+                end
+            else
+                -- fallback: original single-row-per-value assumption
+                if raw_offset == j then
+                    found = j
+                    break
+                end
+            end
+        end
+
+        if found then
+            value_on = found
+        elseif raw_offset == (cell.total_display_rows or #cell.values) + 1 and #cell.hidden_values > 0 then
+            value_on = "expand"
+        else
+            value_on = nil
+        end
     end
 
     return layer_in, cell_in, value_on
