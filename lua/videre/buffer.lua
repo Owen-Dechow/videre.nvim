@@ -10,6 +10,8 @@ local M = {}
 local header_ns = vim.api.nvim_create_namespace("videre_header")
 -- maps videre win -> { win = overlay_win, buf = overlay_buf }
 local header_floats = {}
+-- tracks the active augroup per Videre buf so navigation calls can clear the old one
+local active_grps = {}
 
 ---@param text string
 ---@return { text: string, hl: string }[]
@@ -32,11 +34,13 @@ local function make_header_chunks(text)
     local chunks = {}
     local pos = 1
     for _, seg in ipairs(segments) do
-        if pos < seg[1] then
-            chunks[#chunks + 1] = { text = text:sub(pos, seg[1] - 1), hl = "StatusLine" }
+        if seg[1] >= pos then
+            if pos < seg[1] then
+                chunks[#chunks + 1] = { text = text:sub(pos, seg[1] - 1), hl = "StatusLine" }
+            end
+            chunks[#chunks + 1] = { text = text:sub(seg[1], seg[2]), hl = seg[3] }
+            pos = seg[2] + 1
         end
-        chunks[#chunks + 1] = { text = text:sub(seg[1], seg[2]), hl = seg[3] }
-        pos = seg[2] + 1
     end
     if pos <= #text then
         chunks[#chunks + 1] = { text = text:sub(pos), hl = "StatusLine" }
@@ -81,7 +85,7 @@ local function create_header_float(videre_win)
     local has_border = type(win_cfg.border) == "table" and #win_cfg.border > 0
     local border_offset = has_border and 1 or 0
     local win_width = vim.api.nvim_win_get_width(videre_win)
-    local overlay_width = win_width - border_offset * 2
+    local overlay_width = win_width
 
     local overlay_win = vim.api.nvim_open_win(overlay_buf, false, {
         relative = "win",
@@ -105,6 +109,9 @@ local function create_header_float(videre_win)
         callback = function()
             if vim.api.nvim_win_is_valid(overlay_win) then
                 vim.api.nvim_win_close(overlay_win, true)
+            end
+            if vim.api.nvim_buf_is_valid(overlay_buf) then
+                vim.api.nvim_buf_delete(overlay_buf, { force = true })
             end
             header_floats[videre_win] = nil
         end,
@@ -210,7 +217,6 @@ local function on_mouse_move(buf, videre_table)
         vim.api.nvim_feedkeys("j", "n", false)
     end
 
-    update_header(buf, videre_table)
     highlighting.Clear(buf, true)
 
     if layer_n and cell_n then
@@ -231,6 +237,7 @@ local function on_mouse_move(buf, videre_table)
 
     actions.MakeCloseWindowMapping(buf, videre_table)
     actions.MakeOpenHelpMenuMapping(buf)
+    update_header(buf, videre_table)
 end
 
 ---@param buf integer
@@ -263,6 +270,14 @@ end
 ---@param videre_table VidereTable
 ---@param clear_table VidereTable|nil
 function M.JoinTableToBuffer(buf, videre_table, clear_table)
+    -- Clear the previous group for this buffer so global autocmds (resize)
+    -- from navigation paths that don't pass clear_table don't accumulate.
+    local prev_grp = active_grps[buf]
+    if prev_grp then
+        pcall(vim.api.nvim_clear_autocmds, { group = prev_grp })
+    end
+    active_grps[buf] = videre_table.grp
+
     if clear_table then
         vim.api.nvim_clear_autocmds({ group = clear_table.grp })
     end
@@ -273,6 +288,46 @@ function M.JoinTableToBuffer(buf, videre_table, clear_table)
         actions.ClearAllMappings(buf, videre_table)
         on_mouse_move(buf, videre_table)
     end)
+
+    -- not buffer-scoped: VimResized/WinResized fire globally; the Videre
+    -- buffer may be visible but not current when the resize happens
+    vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
+        group = videre_table.grp,
+        callback = function()
+            for _, videre_win in ipairs(vim.fn.win_findbuf(buf)) do
+                local state = header_floats[videre_win]
+                if state and vim.api.nvim_win_is_valid(state.win) then
+                    local win_width = vim.api.nvim_win_get_width(videre_win)
+                    vim.api.nvim_win_set_config(state.win, { width = win_width })
+                end
+            end
+        end,
+    })
+
+    -- Clear group (including global resize autocmds) and close any lingering
+    -- overlay floats when the buffer is deleted or wiped. The window may stay
+    -- open with a different buffer, so the float must be explicitly removed.
+    vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
+        buffer = buf,
+        group = videre_table.grp,
+        once = true,
+        callback = function()
+            for _, videre_win in ipairs(vim.fn.win_findbuf(buf)) do
+                local state = header_floats[videre_win]
+                if state then
+                    if vim.api.nvim_win_is_valid(state.win) then
+                        vim.api.nvim_win_close(state.win, true)
+                    end
+                    if vim.api.nvim_buf_is_valid(state.buf) then
+                        vim.api.nvim_buf_delete(state.buf, { force = true })
+                    end
+                    header_floats[videre_win] = nil
+                end
+            end
+            vim.api.nvim_clear_autocmds({ group = videre_table.grp })
+            active_grps[buf] = nil
+        end,
+    })
 
     vim.api.nvim_buf_create_user_command(buf, "VidereCommit", function()
         local new_lines = videre_table.lang_spec.Encode(videre_table.data)
