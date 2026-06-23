@@ -350,6 +350,8 @@ function M.Setup(config)
     confirm_is_valid_keymap("keymaps.change_type")
     confirm_is_valid_keymap("keymaps.help")
     confirm_is_valid_keymap("keymaps.close_window")
+    confirm_is_valid_keymap("keymaps.undo")
+    confirm_is_valid_keymap("keymaps.redo")
 
     confirm_is_integer_in_range("index_base", -999, 999)
 end

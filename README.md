@@ -183,6 +183,14 @@ https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
         ---@type string
         change_type = "T",
 
+        ---@comment Undo a change 
+        ---@type string
+        undo = "u",
+
+        ---@comment Redo a change i.e. undo an undo
+        ---@type string
+        redo = "<C-r>",
+
         ---@comment Open help menu
         ---@type string
         help = "g?",
@@ -230,7 +238,7 @@ https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
     ---@type integer
     scrolloff = 10,
 
-    ---@comment Set the indexing base i.e. 0, 1 or whatever else you want (int: [-999, 999])
+    ---@comment Set the indexing base i.e. 0, 1 or whatever else you want
     ---@type integer
     index_base = 0,
 }
