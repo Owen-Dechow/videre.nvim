@@ -142,6 +142,9 @@ https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
     ---@type boolean
     expand_newlines = false,
 
+    ---@comment Max display width of string values in characters; 0 disables wrapping (int: [0, 9999])
+    ---@type integer
+    max_line_width = 0,
     keymaps = {
         ---@comment Expand lines beyond `max_cell_lines`
         ---@type string

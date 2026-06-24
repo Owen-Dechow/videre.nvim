@@ -7,6 +7,14 @@ local videre_special = "Special"
 local ns = vim.api.nvim_create_namespace("VidereBase")
 local ns_s = vim.api.nvim_create_namespace("VidereStatus")
 
+local function entry_row_span(cell, i, total_rows)
+    local entry = cell.values[i]
+    local next_entry = cell.values[i + 1]
+    local base = entry.row_offset or i
+    local next_base = next_entry and (next_entry.row_offset or (i + 1)) or (total_rows + 1)
+    return next_base - base
+end
+
 ---@param pos [integer, integer]
 ---@param buf integer
 ---@return [integer, integer]
@@ -30,17 +38,21 @@ function M.HighlightFocusedCell(buf, cell, left)
         B { cell.top_render_line, left + cell.render_width })
 
     local total_rows = cell.total_display_rows or #cell.values
-    for row = 1, total_rows do
-        local line = cell.top_render_line + row
+    for i, entry in ipairs(cell.values) do
+        local first_line = cell.top_render_line + (entry.row_offset or i)
+        local span = entry_row_span(cell, i, total_rows)
 
-        vim.hl.range(buf, ns_s, videre_special, B { line, left },
-            B { line, left + 1 })
+        for s = 0, span - 1 do
+            local line = first_line + s
+            vim.hl.range(buf, ns_s, videre_special, B { line, left },
+                B { line, left + 1 })
 
-        vim.hl.range(buf, ns_s, videre_special, B { line, left + cell.key_col_width + 1 },
-            B { line, left + cell.key_col_width + 2 })
+            vim.hl.range(buf, ns_s, videre_special, B { line, left + cell.key_col_width + 1 },
+                B { line, left + cell.key_col_width + 2 })
 
-        vim.hl.range(buf, ns_s, videre_special, B { line, left + cell.render_width - 1 },
-            B { line, left + cell.render_width })
+            vim.hl.range(buf, ns_s, videre_special, B { line, left + cell.render_width - 1 },
+                B { line, left + cell.render_width })
+        end
     end
 
     vim.hl.range(buf, ns_s, videre_special, B { cell.top_render_line + total_rows + 1, left },
@@ -112,8 +124,10 @@ local function highlight_cell_values(buf, tbl, cell, left)
     end
 
 
+    local total_rows = cell.total_display_rows or #cell.values
     for i, entry in pairs(cell.values) do
         local line = cell.top_render_line + (entry.row_offset or i)
+        local span = entry_row_span(cell, i, total_rows)
 
         vim.hl.range(buf, ns, "Comment",
             B { line, left + 1 },
@@ -139,31 +153,35 @@ local function highlight_cell_values(buf, tbl, cell, left)
             B { line, left + cell.render_width - entry.val_right_pad - 1 })
 
         if type == "String" then
-            local val_display = tbl.lang_spec.ValueAsString(entry[2], "string", false)
-            local val_lines = utils.DisplayLines(val_display, config.tab_width)
-            local start = B({ line, left + cell.key_col_width + entry.val_left_pad + 2 })[2]
-            highlight_escapes(buf, line, val_lines[1], start)
-
+            local full_str = tbl.lang_spec.ValueAsString(entry[2], "string", false)
+            local segments = utils.DisplayLines(full_str)
             local val_col_width = cell.render_width - cell.key_col_width - 3
-            for li = 2, #val_lines do
-                local cont_line = line + (li - 1)
-                local cont_left_pad, _, cont_right_pad = utils.PadLine(val_lines[li], val_col_width,
-                    config.value_alignment, config.value_space)
-
-                vim.hl.range(buf, ns, "Comment",
-                    B { cont_line, left + 1 },
-                    B { cont_line, left + cell.key_col_width + 1 })
-
-                vim.hl.range(buf, ns, "Comment",
-                    B { cont_line, left + cell.key_col_width + 2 },
-                    B { cont_line, left + cell.render_width - 1 })
-
-                vim.hl.range(buf, ns, "String",
-                    B { cont_line, left + cell.key_col_width + cont_left_pad + 2 },
-                    B { cont_line, left + cell.render_width - cont_right_pad - 1 })
-
-                local cont_start = B({ cont_line, left + cell.key_col_width + cont_left_pad + 2 })[2]
-                highlight_escapes(buf, cont_line, val_lines[li], cont_start)
+            for si, seg in ipairs(segments) do
+                local seg_line = line + (si - 1)
+                local seg_pad, seg_rpad
+                if si == 1 then
+                    seg_pad = entry.val_left_pad
+                    seg_rpad = entry.val_right_pad
+                else
+                    seg_pad, _, seg_rpad = utils.PadLine(seg, val_col_width, config.value_alignment, config.value_space)
+                    vim.hl.range(buf, ns, "Comment", B { seg_line, left + 1 },
+                        B { seg_line, left + cell.key_col_width + 1 })
+                    vim.hl.range(buf, ns, "Comment", B { seg_line, left + cell.key_col_width + 2 },
+                        B { seg_line, left + cell.render_width - 1 })
+                    vim.hl.range(buf, ns, "String",
+                        B { seg_line, left + cell.key_col_width + seg_pad + 2 },
+                        B { seg_line, left + cell.render_width - seg_rpad - 1 })
+                end
+                local seg_start = B({ seg_line, left + cell.key_col_width + seg_pad + 2 })[2]
+                highlight_escapes(buf, seg_line, seg, seg_start)
+            end
+        else
+            for s = 1, span - 1 do
+                local cont = line + s
+                vim.hl.range(buf, ns, "Comment", B { cont, left + cell.key_col_width + 2 },
+                    B { cont, left + cell.render_width - 1 })
+                vim.hl.range(buf, ns, type, B { cont, left + cell.key_col_width + 2 },
+                    B { cont, left + cell.render_width - 1 })
             end
         end
     end
