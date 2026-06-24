@@ -34,12 +34,12 @@ function M.HighlightFocusedCell(buf, cell, left)
         return convert_col_to_bytes(pos, buf)
     end
 
-    vim.hl.range(buf, ns_s, videre_special, B { cell.top_render_line, left },
-        B { cell.top_render_line, left + cell.render_width })
+    vim.hl.range(buf, ns_s, videre_special, B { cell.top_render_line - 1, left },
+        B { cell.top_render_line - 1, left + cell.render_width })
 
     local total_rows = cell.total_display_rows or #cell.values
     for i, entry in ipairs(cell.values) do
-        local first_line = cell.top_render_line + (entry.row_offset or i)
+        local first_line = cell.top_render_line - 1 + (entry.row_offset or i)
         local span = entry_row_span(cell, i, total_rows)
 
         for s = 0, span - 1 do
@@ -55,13 +55,13 @@ function M.HighlightFocusedCell(buf, cell, left)
         end
     end
 
-    vim.hl.range(buf, ns_s, videre_special, B { cell.top_render_line + total_rows + 1, left },
-        B { cell.top_render_line + total_rows + 1, left + cell.render_width })
+    vim.hl.range(buf, ns_s, videre_special, B { cell.top_render_line - 1 + total_rows, left },
+        B { cell.top_render_line - 1 + total_rows, left + cell.render_width })
 
     if #cell.hidden_values > 0 then
         vim.hl.range(buf, ns_s, videre_special,
-            B { cell.top_render_line + total_rows + 2, left },
-            B { cell.top_render_line + total_rows + 2, left + cell.render_width })
+            B { cell.top_render_line + total_rows, left },
+            B { cell.top_render_line + total_rows, left + cell.render_width })
     end
 
     local mouse_row = vim.api.nvim_win_get_cursor(0)[1] - 1
@@ -95,24 +95,6 @@ local function highlight_escapes(bufnr, line, text, string_start)
 end
 
 ---@param buf integer
-local function highlight_statusline(buf)
-    local text = vim.api.nvim_buf_get_lines(buf, 0, 1, true)[1]
-
-    local s, e = text:find("^%s*(%+?Videre)")
-    if s then
-        vim.hl.range(buf, ns_s, "Keyword", { 0, s - 1 }, { 0, e })
-    end
-
-    for bs, be in text:gmatch("()%[.-%]()") do
-        vim.hl.range(buf, ns_s, "Special", { 0, bs - 1 }, { 0, be })
-    end
-
-    for ps, pe in text:gmatch("()%b()()") do
-        vim.hl.range(buf, ns_s, "Identifier", { 0, ps - 1 }, { 0, pe })
-    end
-end
-
----@param buf integer
 ---@param tbl VidereTable
 ---@param cell VidereCell
 ---@param left integer
@@ -126,7 +108,7 @@ local function highlight_cell_values(buf, tbl, cell, left)
 
     local total_rows = cell.total_display_rows or #cell.values
     for i, entry in pairs(cell.values) do
-        local line = cell.top_render_line + (entry.row_offset or i)
+        local line = cell.top_render_line - 1 + (entry.row_offset or i)
         local span = entry_row_span(cell, i, total_rows)
 
         vim.hl.range(buf, ns, "Comment",
@@ -203,7 +185,6 @@ function M.HighlightBuffer(buf, tbl, statusline_only)
         end
     end
 
-    highlight_statusline(buf)
 end
 
 ---@param buf integer

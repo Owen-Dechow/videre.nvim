@@ -188,7 +188,7 @@ end
 ---@param tbl VidereTable
 ---@return integer|nil, integer|nil, integer|nil|"expand"
 function M.GetHoveredCell(tbl)
-    local mrow, mcol = M.GetMousePos(1)
+    local mrow, mcol = M.GetMousePos(0)
 
     local layer_in, cell_in;
     for i, layer in ipairs(tbl.layers) do

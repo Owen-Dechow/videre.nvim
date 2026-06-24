@@ -7,6 +7,137 @@ local actions = require "videre.actions"
 
 local M = {}
 
+local header_ns = vim.api.nvim_create_namespace("videre_header")
+-- maps videre win -> { win = overlay_win, buf = overlay_buf }
+local header_floats = {}
+-- tracks the active augroup per Videre buf so navigation calls can clear the old one
+local active_grps = {}
+
+---@param text string
+---@return { text: string, hl: string }[]
+local function make_header_chunks(text)
+    local segments = {}
+
+    local s, e = text:find("^%s*%+?Videre")
+    if s then segments[#segments + 1] = { s, e, "Keyword" } end
+
+    for bs, be in text:gmatch("()%[.-%]()") do
+        segments[#segments + 1] = { bs, be - 1, "Special" }
+    end
+
+    for ps, pe in text:gmatch("()%b()()") do
+        segments[#segments + 1] = { ps, pe - 1, "Identifier" }
+    end
+
+    table.sort(segments, function(a, b) return a[1] < b[1] end)
+
+    local chunks = {}
+    local pos = 1
+    for _, seg in ipairs(segments) do
+        if seg[1] >= pos then
+            if pos < seg[1] then
+                chunks[#chunks + 1] = { text = text:sub(pos, seg[1] - 1), hl = "StatusLine" }
+            end
+            chunks[#chunks + 1] = { text = text:sub(seg[1], seg[2]), hl = seg[3] }
+            pos = seg[2] + 1
+        end
+    end
+    if pos <= #text then
+        chunks[#chunks + 1] = { text = text:sub(pos), hl = "StatusLine" }
+    end
+
+    if #chunks == 0 then
+        chunks[#chunks + 1] = { text = text, hl = "StatusLine" }
+    end
+
+    return chunks
+end
+
+---@param overlay_buf integer
+---@param chunks { text: string, hl: string }[]
+local function render_chunks_to_buf(overlay_buf, chunks)
+    local text = ""
+    for _, c in ipairs(chunks) do text = text .. c.text end
+
+    vim.bo[overlay_buf].modifiable = true
+    vim.api.nvim_buf_set_lines(overlay_buf, 0, -1, false, { text })
+    vim.bo[overlay_buf].modifiable = false
+
+    vim.api.nvim_buf_clear_namespace(overlay_buf, header_ns, 0, -1)
+    local col = 0
+    for _, c in ipairs(chunks) do
+        local byte_len = #c.text
+        vim.api.nvim_buf_set_extmark(overlay_buf, header_ns, 0, col, {
+            end_col = col + byte_len,
+            hl_group = c.hl,
+        })
+        col = col + byte_len
+    end
+end
+
+---@param videre_win integer
+---@return integer overlay_win, integer overlay_buf
+local function create_header_float(videre_win)
+    local overlay_buf = vim.api.nvim_create_buf(false, true)
+    vim.bo[overlay_buf].modifiable = false
+
+    local win_cfg = vim.api.nvim_win_get_config(videre_win)
+    local has_border = type(win_cfg.border) == "table" and #win_cfg.border > 0
+    local border_offset = has_border and 1 or 0
+    local win_width = vim.api.nvim_win_get_width(videre_win)
+    local overlay_width = win_width
+
+    local overlay_win = vim.api.nvim_open_win(overlay_buf, false, {
+        relative = "win",
+        win = videre_win,
+        row = border_offset,
+        col = border_offset,
+        width = overlay_width,
+        height = 1,
+        style = "minimal",
+        focusable = false,
+        zindex = (win_cfg.zindex or 10) + 1,
+    })
+
+    vim.wo[overlay_win].wrap = false
+    vim.wo[overlay_win].winhl = "Normal:StatusLine"
+
+    -- clean up overlay when the Videre window closes
+    vim.api.nvim_create_autocmd("WinClosed", {
+        pattern = tostring(videre_win),
+        once = true,
+        callback = function()
+            if vim.api.nvim_win_is_valid(overlay_win) then
+                vim.api.nvim_win_close(overlay_win, true)
+            end
+            if vim.api.nvim_buf_is_valid(overlay_buf) then
+                vim.api.nvim_buf_delete(overlay_buf, { force = true })
+            end
+            header_floats[videre_win] = nil
+        end,
+    })
+
+    return overlay_win, overlay_buf
+end
+
+---@param buf integer
+---@param videre_table VidereTable
+local function update_header(buf, videre_table)
+    local chunks = make_header_chunks(statusline.GetStatuslineString(videre_table))
+
+    for _, videre_win in ipairs(vim.fn.win_findbuf(buf)) do
+        local state = header_floats[videre_win]
+
+        if not state or not vim.api.nvim_win_is_valid(state.win) then
+            local overlay_win, overlay_buf = create_header_float(videre_win)
+            state = { win = overlay_win, buf = overlay_buf }
+            header_floats[videre_win] = state
+        end
+
+        render_chunks_to_buf(state.buf, chunks)
+    end
+end
+
 ---@param buf integer
 ---@param fn fun()
 local function run_edit(buf, fn)
@@ -106,12 +237,7 @@ local function on_mouse_move(buf, videre_table)
 
     actions.MakeCloseWindowMapping(buf, videre_table)
     actions.MakeOpenHelpMenuMapping(buf)
-
-    run_edit(buf, function()
-        vim.api.nvim_buf_set_lines(buf, 0, 1, false, { statusline.GetStatuslineString(videre_table) })
-    end)
-
-    highlighting.HighlightBuffer(buf, videre_table, true)
+    update_header(buf, videre_table)
 end
 
 ---@param buf integer
@@ -134,7 +260,7 @@ function M.Redraw(buf, videre_table)
     highlighting.Clear(buf, false)
 
     run_edit(buf, function()
-        vim.api.nvim_buf_set_lines(buf, 1, -1, false, out_lines)
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, out_lines)
     end)
 
     highlighting.HighlightBuffer(buf, videre_table, false)
@@ -144,6 +270,14 @@ end
 ---@param videre_table VidereTable
 ---@param clear_table VidereTable|nil
 function M.JoinTableToBuffer(buf, videre_table, clear_table)
+    -- Clear the previous group for this buffer so global autocmds (resize)
+    -- from navigation paths that don't pass clear_table don't accumulate.
+    local prev_grp = active_grps[buf]
+    if prev_grp then
+        pcall(vim.api.nvim_clear_autocmds, { group = prev_grp })
+    end
+    active_grps[buf] = videre_table.grp
+
     if clear_table then
         vim.api.nvim_clear_autocmds({ group = clear_table.grp })
     end
@@ -154,6 +288,62 @@ function M.JoinTableToBuffer(buf, videre_table, clear_table)
         actions.ClearAllMappings(buf, videre_table)
         on_mouse_move(buf, videre_table)
     end)
+
+    -- fires each time the Videre buffer enters any window; creates the header
+    -- for that window and refreshes cursor state (handles both initial open and
+    -- the case where the buffer is later shown in an additional split)
+    vim.api.nvim_create_autocmd("BufWinEnter", {
+        buffer = buf,
+        group = videre_table.grp,
+        callback = function()
+            actions.ClearAllMappings(buf, videre_table)
+            pcall(on_mouse_move, buf, videre_table)
+        end,
+    })
+
+    -- not buffer-scoped: VimResized/WinResized fire globally; the Videre
+    -- buffer may be visible but not current when the resize happens
+    vim.api.nvim_create_autocmd({ "VimResized", "WinResized" }, {
+        group = videre_table.grp,
+        callback = function()
+            for _, videre_win in ipairs(vim.fn.win_findbuf(buf)) do
+                local state = header_floats[videre_win]
+                if state and vim.api.nvim_win_is_valid(state.win) then
+                    local win_width = vim.api.nvim_win_get_width(videre_win)
+                    vim.api.nvim_win_set_config(state.win, { width = win_width })
+                    vim.api.nvim_win_call(videre_win, function()
+                        local chunks = make_header_chunks(statusline.GetStatuslineString(videre_table))
+                        render_chunks_to_buf(state.buf, chunks)
+                    end)
+                end
+            end
+        end,
+    })
+
+    -- Clear group (including global resize autocmds) and close any lingering
+    -- overlay floats when the buffer is deleted or wiped. The window may stay
+    -- open with a different buffer, so the float must be explicitly removed.
+    vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
+        buffer = buf,
+        group = videre_table.grp,
+        once = true,
+        callback = function()
+            for _, videre_win in ipairs(vim.fn.win_findbuf(buf)) do
+                local state = header_floats[videre_win]
+                if state then
+                    if vim.api.nvim_win_is_valid(state.win) then
+                        vim.api.nvim_win_close(state.win, true)
+                    end
+                    if vim.api.nvim_buf_is_valid(state.buf) then
+                        vim.api.nvim_buf_delete(state.buf, { force = true })
+                    end
+                    header_floats[videre_win] = nil
+                end
+            end
+            vim.api.nvim_clear_autocmds({ group = videre_table.grp })
+            active_grps[buf] = nil
+        end,
+    })
 
     vim.api.nvim_buf_create_user_command(buf, "VidereCommit", function()
         local new_lines = videre_table.lang_spec.Encode(videre_table.data)

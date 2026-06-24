@@ -6,8 +6,6 @@ local M = {}
 ---@param tbl VidereTable
 ---@return string
 function M.GetStatuslineString(tbl)
-    local pad = string.rep(" ", vim.fn.winsaveview().leftcol)
-
     local result = (tbl.is_saved and "" or "+") .. "Videre [" .. config.keymaps.help .. " "
 
     result = result .. table.concat(tbl.available_maps, " ") .. "] "
@@ -45,7 +43,7 @@ function M.GetStatuslineString(tbl)
         result = result .. "—"
     end
 
-    return pad .. result .. table.concat(change_indicator, "—")
+    return result .. table.concat(change_indicator, "—")
 end
 
 return M
