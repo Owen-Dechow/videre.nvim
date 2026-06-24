@@ -75,7 +75,8 @@ M.config = {
 
     ---@comment Max display width of string values in characters; 0 disables wrapping (int: [0,9999])
     ---@type integer
-    max_line_width = 0,
+    max_line_width = 30,
+
     keymaps = {
         ---@comment Expand lines beyond `max_cell_lines`
         ---@type string

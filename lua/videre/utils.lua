@@ -1,3 +1,5 @@
+local config = require("videre.config").config
+
 local M = {}
 
 ---@alias DataObjectTypeName
@@ -62,26 +64,6 @@ function M.StringWidth(val)
     return vim.str_utfindex(val, "utf-16")
 end
 
----@param str string
----@param width integer
----@param align RowAlignment
----@param space string
----@return integer, string, integer
-function M.PadLine(str, width, align, space)
-    local current_width = M.StringWidth(str)
-    local pad = width - current_width
-
-    if align == "left" then
-        return 0, str .. string.rep(space, pad), pad
-    elseif align == "right" then
-        return pad, string.rep(space, pad) .. str, 0
-    else
-        local left = math.floor(pad / 2)
-        local right = pad - left
-        return left, string.rep(space, left) .. str .. string.rep(space, right), right
-    end
-end
-
 ---@param val integer
 ---@return integer
 function M.NumberWidth(val)
@@ -108,26 +90,14 @@ function M.PadLine(str, width, align, space)
     end
 end
 
----Split a ValueAsString display string into visual rows.
----Walks str one character at a time via str_idx. On a backslash, the next
----character is consumed as a pair into current_line so that an escaped
----backslash (\\) never causes the character after it to be misread as a
----\\n/\\r/\\t marker. Completed rows are flushed into lines[]:
----  \\n  → flush current_line into lines, reset current_line
----  \\r\\n → treated as a single newline split (consume all 4 chars)
----  \\r  → keep literal \r in current_line (standalone CR, e.g. old Mac endings or regex patterns)
----  \\t  → append tab_width spaces to current_line
----  \\   → append "\\\\" to current_line (escaped backslash; next char skipped)
----  \\X  → append both chars unchanged to current_line
 ---@param str string
 ---@return string[]
 function M.DisplayLines(str)
-    local config = require("videre.config").config
     local tab_width = config.tab_width
     local expand_tabs = config.expand_tabs
     local expand_newlines = config.expand_newlines
 
-    local lines = {}
+    local split_lines = {}
     local current_line = {}
     local str_idx = 1
     while str_idx <= #str do
@@ -138,12 +108,12 @@ function M.DisplayLines(str)
                 current_line[#current_line + 1] = [[\\]]
                 str_idx = str_idx + 2
             elseif next == "n" and expand_newlines then
-                lines[#lines + 1] = table.concat(current_line)
+                split_lines[#split_lines + 1] = table.concat(current_line)
                 current_line = {}
                 str_idx = str_idx + 2
             elseif next == "r" and expand_newlines then
                 if str:sub(str_idx + 2, str_idx + 3) == [[\n]] then
-                    lines[#lines + 1] = table.concat(current_line)
+                    split_lines[#split_lines + 1] = table.concat(current_line)
                     current_line = {}
                     str_idx = str_idx + 4
                 else
@@ -162,7 +132,25 @@ function M.DisplayLines(str)
             str_idx = str_idx + 1
         end
     end
-    lines[#lines + 1] = table.concat(current_line)
+
+    split_lines[#split_lines + 1] = table.concat(current_line)
+
+    if config.max_line_width == 0 then
+        return split_lines
+    end
+
+    local lines = {}
+    for _, line in ipairs(split_lines) do
+        if M.StringWidth(line) > config.max_line_width then
+            while #line > 0 do
+                lines[#lines + 1] = vim.fn.strcharpart(line, 0, config.max_line_width)
+                line = vim.fn.strcharpart(line, config.max_line_width)
+            end
+        else
+            lines[#lines + 1] = line
+        end
+    end
+
     return lines
 end
 
@@ -179,8 +167,8 @@ function M.ValueAsString(tbl, val, width, align, space, is_key)
     if is_key then
         return M.PadLine(str, width, align, space)
     end
-    local tab_width = require("videre.config").config.tab_width
-    local first_line = M.DisplayLines(str, tab_width)[1]
+
+    local first_line = M.DisplayLines(str)[1]
     return M.PadLine(first_line, width, align, space)
 end
 

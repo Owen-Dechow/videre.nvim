@@ -3,31 +3,6 @@ local config = require("videre.config").config
 
 M = {}
 
--- Wraps by Unicode codepoint count (strchars), not display width or grapheme clusters;
--- combining characters and ZWJ sequences may be split across rows.
--- When expand_newlines=false, a \X escape pair that straddles a wrap boundary will
--- lose its SpecialChar highlight on both halves (cosmetic only, display is unaffected).
-local function wrap_and_split(str)
-    local max_w = config.max_line_width
-    if max_w <= 0 then
-        return utils.DisplayLines(str)
-    end
-    local result = {}
-    for _, seg_line in ipairs(utils.DisplayLines(str)) do
-        local char_len = vim.fn.strchars(seg_line)
-        if char_len <= max_w then
-            result[#result + 1] = seg_line
-        else
-            local pos = 0
-            while pos < char_len do
-                result[#result + 1] = vim.fn.strcharpart(seg_line, pos, max_w)
-                pos = pos + max_w
-            end
-        end
-    end
-    return result
-end
-
 local videre_special = "Special"
 local ns = vim.api.nvim_create_namespace("VidereBase")
 local ns_s = vim.api.nvim_create_namespace("VidereStatus")
@@ -179,7 +154,7 @@ local function highlight_cell_values(buf, tbl, cell, left)
 
         if type == "String" then
             local full_str = tbl.lang_spec.ValueAsString(entry[2], "string", false)
-            local segments = wrap_and_split(full_str)
+            local segments = utils.DisplayLines(full_str)
             local val_col_width = cell.render_width - cell.key_col_width - 3
             for si, seg in ipairs(segments) do
                 local seg_line = line + (si - 1)

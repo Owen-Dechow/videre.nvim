@@ -21,7 +21,7 @@
     "example": {
         "empty_array": [],
         "empty_table": {},
-        "test": "This is some\ntest data",
+        "test": "This is some\ntest data that is very long in length and needs to be split up into multiple parts",
         "nothing": null,
         "nested_table": {
             "string": "MY_STRING",

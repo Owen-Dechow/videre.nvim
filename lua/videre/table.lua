@@ -145,33 +145,6 @@ function M.DataToVidereTable(data, from_buffer, is_saved, lang_spec, states, sta
     return tbl
 end
 
-
----@param str string
----@return string[]
--- Wraps by Unicode codepoint count (strchars), not display width or grapheme clusters;
--- combining characters and ZWJ sequences may be split across rows.
--- When expand_newlines=false, a \X escape pair that straddles a wrap boundary will
--- lose its SpecialChar highlight on both halves (cosmetic only, display is unaffected).
-local function wrap_and_split(str)
-    local lines = utils.DisplayLines(str)
-    local max_w = config.max_line_width
-    if max_w <= 0 then return lines end
-    local result = {}
-    for _, line in ipairs(lines) do
-        local char_len = vim.fn.strchars(line)
-        if char_len <= max_w then
-            result[#result + 1] = line
-        else
-            local pos = 0
-            while pos < char_len do
-                result[#result + 1] = vim.fn.strcharpart(line, pos, max_w)
-                pos = pos + max_w
-            end
-        end
-    end
-    return result
-end
-
 ---@param val VidereValue
 ---@param tbl VidereTable
 ---@param is_key boolean
@@ -183,7 +156,7 @@ local function get_value_width(val, tbl, is_key)
         return utils.StringWidth(str)
     end
     local max_w = 0
-    for _, line in ipairs(wrap_and_split(str)) do
+    for _, line in ipairs(utils.DisplayLines(str)) do
         local w = utils.StringWidth(line)
         if w > max_w then max_w = w end
     end
@@ -257,7 +230,7 @@ local function get_layer_min_height(layer, tbl)
                 local val_type = utils.ValueType(val)
                 if val_type == "string" then
                     local str = tbl.lang_spec.ValueAsString(val, val_type, false)
-                    cell_height = cell_height + #wrap_and_split(str)
+                    cell_height = cell_height + #utils.DisplayLines(str)
                 else
                     cell_height = cell_height + 1
                 end
@@ -308,7 +281,6 @@ local function render_cell_at_width(cell, tbl, width, is_root)
     string.rep(boxes.HorizontalBox(), width - key_col_width - 3) ..
     boxes.TopRight() }
 
-    local row_offset = 1
     for i, entry in ipairs(cell.values) do
         local key, val = entry[1], entry[2]
         local val_type = utils.ValueType(val)
@@ -331,7 +303,7 @@ local function render_cell_at_width(cell, tbl, width, is_root)
 
         local val_col_width = width - key_col_width - 3
         local val_display = tbl.lang_spec.ValueAsString(val, val_type, false)
-        local val_lines = val_type == "string" and wrap_and_split(val_display)
+        local val_lines = val_type == "string" and utils.DisplayLines(val_display)
             or { val_display }
 
         local val_left_pad, value_string, val_right_pad = utils.PadLine(val_lines[1], val_col_width,
