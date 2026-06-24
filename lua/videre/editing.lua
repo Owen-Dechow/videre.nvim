@@ -101,6 +101,8 @@ function M.MakeEditFloat(opts)
         focusable = false,
     })
 
+    vim.wo[state.input_win].winhighlight = "jsonNoQuotesError:NONE"
+
     -- Keymaps
     vim.keymap.set("i", "<CR>", function()
         local line = vim.api.nvim_buf_get_lines(state.input_buf, 0, 1, false)[1] or ""
