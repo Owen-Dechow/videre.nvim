@@ -81,6 +81,11 @@ end
 local function on_mouse_move(buf, videre_table)
     local layer_n, cell_n, val_n = utils.GetHoveredCell(videre_table)
 
+    local row = vim.api.nvim_win_get_cursor(0)[1]
+    if row == 1 then
+        vim.api.nvim_feedkeys("j", "n", false)
+    end
+
     highlighting.Clear(buf, true)
 
     if layer_n and cell_n then
@@ -147,7 +152,7 @@ function M.JoinTableToBuffer(buf, videre_table, clear_table)
 
     auto_cmd_for_buf(buf, videre_table, "CursorMoved", function()
         actions.ClearAllMappings(buf, videre_table)
-        pcall(on_mouse_move, buf, videre_table)
+        on_mouse_move(buf, videre_table)
     end)
 
     vim.api.nvim_buf_create_user_command(buf, "VidereCommit", function()

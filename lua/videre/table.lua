@@ -591,9 +591,12 @@ function M.JumpToCellAndValue(tbl, layer_num, cell_num, val)
 
     local total_display_rows = cell.total_display_rows or #cell.values
     local jump = true
+
     if val == "expand" then
-        row = row + (cell.total_display_rows or config.max_cell_lines) + 2
-    elseif val ~= nil and val > #cell.values then
+        val = #cell.values
+    end
+
+    if val ~= nil and val > #cell.values then
         row = row + total_display_rows + 2
         jump = false
     elseif val ~= nil then

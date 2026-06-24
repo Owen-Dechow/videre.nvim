@@ -131,7 +131,9 @@ local function highlight_cell_values(buf, tbl, cell, left)
 
         vim.hl.range(buf, ns, "Comment",
             B { line, left + 1 },
-            B { line, left + cell.key_col_width + 1 })
+            B { line, left + cell.key_col_width + 1 }, {
+                priority = 1
+            })
 
         vim.hl.range(buf, ns, cell.type == "array" and "Number" or "Identifier",
             B { line, left + entry.key_left_pad + 1 },
