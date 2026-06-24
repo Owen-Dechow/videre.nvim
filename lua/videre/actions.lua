@@ -249,7 +249,14 @@ function M.MakeDeleteValueMapping(buf, videre_tbl, layer_n, cell_n, val_n)
                 else
                     local l, c, v = cell.linking_cell[1], cell.linking_cell[2], cell.linking_cell[3]
                     local parent = videre_tbl.layers[l].cells[c]
-                    parent.data[parent.values[v][1]] = vim.empty_dict()
+                    local parent_entry = parent.values[v][2]
+                    if not (parent_entry and parent_entry.targets) then
+                        parent.data[parent.values[v][1]] = vim.empty_dict()
+                    else
+                        -- Branch element: replace only the specific array element, not the whole array.
+                        local array = parent.data[parent.values[v][1]]
+                        array[cell.data_ref[#cell.data_ref]] = vim.empty_dict()
+                    end
                 end
             end
         else
@@ -349,10 +356,13 @@ function M.MakeChangeTypeMapping(buf, videre_tbl, layer_n, cell_n)
                 local key, val = v[1], v[2]
                 local val_type = utils.ValueType(val)
 
-                cell.data[key] = nil
                 if val_type == "array" or val_type == "object" then
-                    cell.data[i] = videre_tbl.layers[val.layer].cells[val.cell].data
+                    local nested_data = val.targets and cell.data[key]
+                        or videre_tbl.layers[val.layer].cells[val.cell].data
+                    cell.data[key] = nil
+                    cell.data[i] = nested_data
                 else
+                    cell.data[key] = nil
                     ---@diagnostic disable-next-line: assign-type-mismatch
                     cell.data[i] = val
                 end
@@ -366,10 +376,13 @@ function M.MakeChangeTypeMapping(buf, videre_tbl, layer_n, cell_n)
 
                 local new_key = "i_" .. tostring(key - 1 + config.index_base)
 
-                cell.data[key] = nil
                 if val_type == "array" or val_type == "object" then
-                    cell.data[new_key] = videre_tbl.layers[val.layer].cells[val.cell].data
+                    local nested_data = val.targets and cell.data[key]
+                        or videre_tbl.layers[val.layer].cells[val.cell].data
+                    cell.data[key] = nil
+                    cell.data[new_key] = nested_data
                 else
+                    cell.data[key] = nil
                     ---@diagnostic disable-next-line: assign-type-mismatch
                     cell.data[new_key] = val
                 end
@@ -382,7 +395,13 @@ function M.MakeChangeTypeMapping(buf, videre_tbl, layer_n, cell_n)
             else
                 local l, c, v = cell.linking_cell[1], cell.linking_cell[2], cell.linking_cell[3]
                 local parent = videre_tbl.layers[l].cells[c]
-                parent.data[parent.values[v][1]] = old_type == "array" and vim.empty_dict() or {}
+                local parent_entry = parent.values[v][2]
+                if not (parent_entry and parent_entry.targets) then
+                    parent.data[parent.values[v][1]] = old_type == "array" and vim.empty_dict() or {}
+                else
+                    local array = parent.data[parent.values[v][1]]
+                    array[cell.data_ref[#cell.data_ref]] = old_type == "array" and vim.empty_dict() or {}
+                end
             end
         end
 
@@ -427,6 +446,7 @@ end
 ---@param videre_table VidereTable
 function M.MakeUndoMapping(buf, videre_table)
     vim.keymap.set("n", config.keymaps.undo, function()
+        if videre_table.state_idx <= 1 then return end
         videre_table.state_idx = videre_table.state_idx - 1
         local state = videre_table.states[videre_table.state_idx]
         videre_table.data = vim.deepcopy(state.data)
@@ -442,6 +462,7 @@ end
 ---@param videre_table VidereTable
 function M.MakeRedoMapping(buf, videre_table)
     vim.keymap.set("n", config.keymaps.redo, function()
+        if videre_table.state_idx >= #videre_table.states then return end
         videre_table.state_idx = videre_table.state_idx + 1
         local state = videre_table.states[videre_table.state_idx]
         videre_table.data = vim.deepcopy(state.data)
