@@ -163,4 +163,31 @@ function M.HorizontalLine()
     return chars[config.line_style].horiz
 end
 
+-- Branch connection characters (used when an array-of-objects fans out from one entry)
+
+---@return string  horizontal+right+down  (trunk enters from left, spine starts downward, first target exits right)
+function M.BranchTeeDown()
+    return chars[config.line_style].tl_non_root
+end
+
+---@return string  horizontal+right+up  (trunk enters from left, spine ends upward, last target exits right)
+function M.BranchTeeUp()
+    return chars[config.line_style].col_bottom
+end
+
+---@return string  up+down+left  (spine continues both ways, trunk enters from left, not a target row)
+function M.BranchTeeLeft()
+    return ({ sharp = "┤", rounded = "┤", bold = "┫", double = "╣" })[config.line_style]
+end
+
+---@return string  up+down+left+right  (spine continues both ways, trunk enters from left, also a target row)
+function M.BranchCross()
+    return ({ sharp = "┼", rounded = "┼", bold = "╋", double = "╬" })[config.line_style]
+end
+
+---@return string  up+down+right  (spine continues in both directions, target exits right)
+function M.BranchFromSpine()
+    return chars[config.line_style].link[config.line_style]
+end
+
 return M
