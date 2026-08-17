@@ -56,8 +56,9 @@ local function register_cell_functions(buf, videre_table, cell, cell_n, layer, l
         local val_type = utils.ValueType(val)
 
         if val_type == "array" or val_type == "object" then
+            local jump_target = val.targets and val.targets[1] or val
             ---@diagnostic disable-next-line: param-type-mismatch
-            actions.MakeJumpMapping(buf, videre_table, val)
+            actions.MakeJumpMapping(buf, videre_table, jump_target)
         end
 
         if videre_table.lang_spec.ParseVal then

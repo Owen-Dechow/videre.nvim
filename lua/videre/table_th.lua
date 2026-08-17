@@ -57,6 +57,7 @@
 ---| Null
 ---| boolean
 ---| VidereConnection
+---| VidereBranchConnection
 
 ---@class VidereConnection
 ---@field layer integer
@@ -65,3 +66,8 @@
 ---@field type DataObjectTypeName
 ---@field from_render_line integer|nil
 ---@field to_render_line integer|nil
+
+---@class VidereBranchConnection
+---@field targets VidereConnection[]
+---@field type "array"
+---@field from_render_line integer|nil

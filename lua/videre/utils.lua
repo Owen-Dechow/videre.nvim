@@ -256,6 +256,17 @@ function M.GetHoveredCell(tbl)
     return layer_in, cell_in, value_on
 end
 
+---@param arr table
+---@return boolean
+function M.AllObjectValues(arr)
+    for _, v in pairs(arr) do
+        if type(v) ~= "table" or M.DataType(v) ~= "object" then
+            return false
+        end
+    end
+    return true
+end
+
 ---@return integer
 function M.UniqueGroup()
     return vim.api.nvim_create_augroup("VidereTableGroup " .. vim.loop.hrtime(), {})

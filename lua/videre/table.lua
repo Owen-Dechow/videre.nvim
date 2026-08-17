@@ -73,30 +73,45 @@ local function add_data_cell_to_table_layer(data, cell_title, tbl, layer_number,
 
     for _, key in ipairs(keys) do
         local value = data[key]
+        local is_entry_hidden = i > config.max_cell_lines
 
-        if i > config.max_cell_lines then
-            if type(value) == "table" then
-                local linking_cell_ref = { layer_number, #tbl.layers[layer_number].cells + 1, i }
+        if type(value) == "table" then
+            local linking_cell_ref = { layer_number, #tbl.layers[layer_number].cells + 1, i }
 
-                local new_data_ref = vim.deepcopy(data_ref)
-                new_data_ref[#new_data_ref + 1] = key
+            local new_data_ref = vim.deepcopy(data_ref)
+            new_data_ref[#new_data_ref + 1] = key
 
-                local conn = add_data_cell_to_table_layer(value, nil, tbl, layer_number + 1, true, linking_cell_ref,
-                    new_data_ref)
-                cell.hidden_values[i] = { key, conn }
+            local entry_value
+            if utils.DataType(value) == "array" and next(value) ~= nil and utils.AllObjectValues(value)
+                and #vim.tbl_keys(value) <= config.max_cell_lines then
+                -- Array of objects: skip intermediate array cell, branch directly to element cells.
+                -- TODO: the skipped array has no cell for its own data_ref; DataRefToTableRef falls
+                -- back to root when called with that ref (only affects undo focus in rare cases).
+                local elem_keys = vim.tbl_keys(value)
+                table.sort(elem_keys, natural_less)
+                local targets = {}
+                for _, elem_key in ipairs(elem_keys) do
+                    local elem_data_ref = vim.deepcopy(new_data_ref)
+                    elem_data_ref[#elem_data_ref + 1] = elem_key
+                    local conn = add_data_cell_to_table_layer(value[elem_key], nil, tbl, layer_number + 1,
+                        is_entry_hidden, linking_cell_ref, elem_data_ref)
+                    targets[#targets + 1] = conn
+                end
+                ---@type VidereBranchConnection
+                entry_value = { targets = targets, type = "array" }
             else
-                cell.hidden_values[i] = { key, value }
+                entry_value = add_data_cell_to_table_layer(value, nil, tbl, layer_number + 1,
+                    is_entry_hidden, linking_cell_ref, new_data_ref)
+            end
+
+            if is_entry_hidden then
+                cell.hidden_values[i] = { key, entry_value }
+            else
+                cell.values[i] = { key, entry_value }
             end
         else
-            if type(value) == "table" then
-                local linking_cell_ref = { layer_number, #tbl.layers[layer_number].cells + 1, i }
-
-                local new_data_ref = vim.deepcopy(data_ref)
-                new_data_ref[#new_data_ref + 1] = key
-
-                local conn = add_data_cell_to_table_layer(value, nil, tbl, layer_number + 1, false, linking_cell_ref,
-                    new_data_ref)
-                cell.values[i] = { key, conn }
+            if is_entry_hidden then
+                cell.hidden_values[i] = { key, value }
             else
                 cell.values[i] = { key, value }
             end
@@ -384,6 +399,134 @@ local function render_layer_to_string(layer, height, is_root, tbl)
 end
 
 ---@param map string[][]
+---@param branch VidereBranchConnection
+local function resolve_branch_connection(map, branch)
+    local from_row = branch.from_render_line
+
+    local target_rows = {}
+    for _, target in ipairs(branch.targets) do
+        if target.to_render_line then
+            target_rows[#target_rows + 1] = target.to_render_line
+        end
+    end
+    table.sort(target_rows)
+
+    if #target_rows == 0 then return end
+
+    local min_target = target_rows[1]
+    local max_target = target_rows[#target_rows]
+    local spine_top = math.min(from_row, min_target)
+    local spine_bottom = math.max(from_row, max_target)
+
+    -- Find the first column that is free for the entire spine range so that
+    -- the branch spine does not overlap other connection routing at that column.
+    local step = config.connection_spacing + 1
+    local spine_col = step
+    while spine_col <= #map[spine_top] do
+        local clear = true
+        for row = spine_top, spine_bottom do
+            if map[row][spine_col] ~= config.outside_space then
+                clear = false
+                break
+            end
+        end
+        if clear then break end
+        spine_col = spine_col + step
+    end
+
+    -- Normalize all map rows to at least spine_col width before drawing.
+    -- Previous branch exits may have extended only some rows; rows that were
+    -- not target rows stay shorter, which breaks left_render_col/hover math.
+    -- Extend with horizontal-line when the row already ends in one (continuing
+    -- an exit); otherwise use outside_space.
+    local horiz = boxes.HorizontalLine()
+    -- Characters that imply a rightward exit: only these rows should be padded
+    -- with horizontal lines. Vertical-spine and source-turn-only characters (│, ╯, ╮)
+    -- do not continue rightward and must not get horizontal tails.
+    local rightward = {
+        [horiz] = true,
+        [boxes.FromDownTurnRight()] = true,
+        [boxes.FromUpTurnRight()] = true,
+        [boxes.BranchFromSpine()] = true,
+        [boxes.BranchTeeDown()] = true,
+        [boxes.BranchTeeUp()] = true,
+        [boxes.BranchCross()] = true,
+    }
+    for i = 1, #map do
+        local r = map[i]
+        local n = #r
+        if n < spine_col then
+            local fill = (n > 0 and rightward[r[n]]) and horiz or config.outside_space
+            for j = n + 1, spine_col do
+                r[j] = fill
+            end
+        end
+    end
+
+    local is_target = {}
+    for _, r in ipairs(target_rows) do
+        is_target[r] = true
+    end
+
+    -- Draw horizontal trunk from source row to spine column
+    for col = 1, spine_col - 1 do
+        map[from_row][col] = boxes.HorizontalLine()
+    end
+
+    -- Set junction character at (from_row, spine_col)
+    local has_up = from_row > spine_top
+    local has_down = from_row < spine_bottom
+    if is_target[from_row] then
+        if has_up and has_down then
+            map[from_row][spine_col] = boxes.BranchCross()
+        elseif has_down then
+            map[from_row][spine_col] = boxes.BranchTeeDown()
+        elseif has_up then
+            map[from_row][spine_col] = boxes.BranchTeeUp()
+        else
+            map[from_row][spine_col] = boxes.HorizontalLine()
+        end
+    else
+        if has_up and has_down then
+            map[from_row][spine_col] = boxes.BranchTeeLeft()
+        elseif has_down then
+            map[from_row][spine_col] = boxes.FromRightTurnDown()
+        elseif has_up then
+            map[from_row][spine_col] = boxes.FromRightTurnUp()
+        else
+            map[from_row][spine_col] = boxes.HorizontalLine()
+        end
+    end
+
+    -- Draw spine and branch exits for each row in range
+    for row = spine_top, spine_bottom do
+        if row ~= from_row then
+            local row_has_up = row > spine_top
+            local row_has_down = row < spine_bottom
+
+            if is_target[row] then
+                if row_has_up and row_has_down then
+                    map[row][spine_col] = boxes.BranchFromSpine()
+                elseif row_has_down then
+                    map[row][spine_col] = boxes.FromUpTurnRight()
+                else
+                    map[row][spine_col] = boxes.FromDownTurnRight()
+                end
+            else
+                map[row][spine_col] = boxes.VerticalLine()
+            end
+        end
+
+        -- Horizontal exit to right edge for target rows (including from_row if it's a target)
+        if is_target[row] then
+            for col = spine_col + 1, #map[row] do
+                map[row][col] = boxes.HorizontalLine()
+            end
+        end
+    end
+end
+
+---@param map string[][]
 ---@param conn VidereConnection
 local function resolve_connection(map, conn)
     local row, target, col = conn.from_render_line, conn.to_render_line, 1
@@ -429,7 +572,7 @@ end
 
 ---@param layer VidereLayer
 ---@param tbl VidereTable
----@return VidereConnection[], VidereConnection[], integer
+---@return VidereConnection[], VidereConnection[], VidereBranchConnection[], integer
 local function aggregate_connection_objects_for_layer(layer, tbl)
     ---@type VidereConnection[]
     local connections_up = {}
@@ -437,9 +580,13 @@ local function aggregate_connection_objects_for_layer(layer, tbl)
     ---@type VidereConnection[]
     local connections_down = {}
 
+    ---@type VidereBranchConnection[]
+    local branch_connections = {}
+
     local current_run = 0
     local width = 1
     local current_type_is_up = nil
+    local branch_count = 0
 
     for _, cell in ipairs(layer.cells) do
         if not cell.is_hidden then
@@ -447,39 +594,55 @@ local function aggregate_connection_objects_for_layer(layer, tbl)
                 local val = entry[2]
                 local value_type = utils.ValueType(val)
                 if value_type == "array" or value_type == "object" then
-                    val.from_render_line = cell.top_render_line + (entry.row_offset or i)
-                    val.to_render_line = tbl.layers[val.layer].cells[val.cell].top_render_line
-
-                    ---@type boolean|nil
-                    local is_up = val.from_render_line > val.to_render_line
-
-                    if val.from_render_line == val.to_render_line then
-                        is_up = nil
-                    end
-
-                    if is_up then
+                    if val.targets then
+                        -- VidereBranchConnection: set from_render_line and each target's to_render_line
+                        val.from_render_line = cell.top_render_line + (entry.row_offset or i)
+                        for _, target in ipairs(val.targets) do
+                            local target_cell = tbl.layers[target.layer].cells[target.cell]
+                            target.to_render_line = not target_cell.is_hidden and target_cell.top_render_line or nil
+                        end
                         ---@diagnostic disable-next-line: assign-type-mismatch
-                        connections_up[# connections_up + 1] = val
-                    else
-                        ---@diagnostic disable-next-line: assign-type-mismatch
-                        connections_down[# connections_down + 1] = val
-                    end
-
-                    if is_up == current_type_is_up and is_up ~= nil then
-                        current_run = current_run + 1
+                        branch_connections[#branch_connections + 1] = val
+                        -- Each branch may need its own column slot to avoid overlapping other routing
+                        branch_count = branch_count + 1
+                        current_run = 1
+                        current_type_is_up = nil
                         width = math.max(width, current_run)
                     else
-                        current_run = 1
-                        current_type_is_up = is_up
+                        val.from_render_line = cell.top_render_line + (entry.row_offset or i)
+                        val.to_render_line = tbl.layers[val.layer].cells[val.cell].top_render_line
+
+                        ---@type boolean|nil
+                        local is_up = val.from_render_line > val.to_render_line
+
+                        if val.from_render_line == val.to_render_line then
+                            is_up = nil
+                        end
+
+                        if is_up then
+                            ---@diagnostic disable-next-line: assign-type-mismatch
+                            connections_up[#connections_up + 1] = val
+                        else
+                            ---@diagnostic disable-next-line: assign-type-mismatch
+                            connections_down[#connections_down + 1] = val
+                        end
+
+                        if is_up == current_type_is_up and is_up ~= nil then
+                            current_run = current_run + 1
+                            width = math.max(width, current_run)
+                        else
+                            current_run = 1
+                            current_type_is_up = is_up
+                        end
                     end
                 end
             end
         end
     end
 
-    width = width * (config.connection_spacing + 1) + config.connection_spacing
+    width = (width + branch_count) * (config.connection_spacing + 1) + config.connection_spacing
 
-    return connections_up, connections_down, width
+    return connections_up, connections_down, branch_connections, width
 end
 
 ---@param tbl VidereTable
@@ -487,7 +650,7 @@ end
 ---@param height integer
 ---@return string[]
 local function create_connections_for_layer(tbl, layer, height)
-    local connections_up, connections_down, width = aggregate_connection_objects_for_layer(layer, tbl)
+    local connections_up, connections_down, branch_connections, width = aggregate_connection_objects_for_layer(layer, tbl)
 
     local map = {}
     for r = 1, height do
@@ -505,6 +668,14 @@ local function create_connections_for_layer(tbl, layer, height)
 
     for i = #connections_down, 1, -1 do
         resolve_connection(map, connections_down[i])
+    end
+
+    -- TODO: branch connections are drawn after normal connections and write cells
+    -- unconditionally, so a branch trunk/exit can overwrite a vertical or turn
+    -- segment placed by a normal connection. Fix: draw branch connections first,
+    -- or add an occupancy guard in resolve_branch_connection.
+    for _, branch in ipairs(branch_connections) do
+        resolve_branch_connection(map, branch)
     end
 
     for i, row in pairs(map) do
@@ -565,7 +736,13 @@ local function set_cells_hidden_from_root(tbl, cell, hidden)
         local value_type = utils.ValueType(value)
 
         if value_type == "array" or value_type == "object" then
-            set_cells_hidden_from_root(tbl, tbl.layers[value.layer].cells[value.cell], hidden)
+            if value.targets then
+                for _, target in ipairs(value.targets) do
+                    set_cells_hidden_from_root(tbl, tbl.layers[target.layer].cells[target.cell], hidden)
+                end
+            else
+                set_cells_hidden_from_root(tbl, tbl.layers[value.layer].cells[value.cell], hidden)
+            end
         end
     end
 
@@ -574,7 +751,13 @@ local function set_cells_hidden_from_root(tbl, cell, hidden)
         local value_type = utils.ValueType(value)
 
         if value_type == "array" or value_type == "object" then
-            set_cells_hidden_from_root(tbl, tbl.layers[value.layer].cells[value.cell], true)
+            if value.targets then
+                for _, target in ipairs(value.targets) do
+                    set_cells_hidden_from_root(tbl, tbl.layers[target.layer].cells[target.cell], true)
+                end
+            else
+                set_cells_hidden_from_root(tbl, tbl.layers[value.layer].cells[value.cell], true)
+            end
         end
     end
 end
@@ -587,6 +770,11 @@ function M.JumpToCellAndValue(tbl, layer_num, cell_num, val)
     local layer = tbl.layers[layer_num]
     local col = layer.left_render_col
     local cell = layer.cells[cell_num]
+
+    if not cell or not cell.top_render_line then
+        return
+    end
+
     local row = cell.top_render_line
 
     local total_display_rows = cell.total_display_rows or #cell.values
@@ -647,22 +835,27 @@ function M.DataRefToTableRef(tbl, data_ref, val)
         layer_n = layer_n - (#tbl.parent_table.layers - #tbl.layers)
     end
 
-    local cell_n;
-
     local layer = tbl.layers[layer_n]
 
-    if not layer then
-        return { 1, 1, 1 }
-    end
-
-    for i, cell in ipairs(layer.cells) do
-        if vim.deep_equal(data_ref, cell.data_ref) then
-            cell_n = i;
-            break
+    if layer then
+        for i, cell in ipairs(layer.cells) do
+            if vim.deep_equal(data_ref, cell.data_ref) then
+                return { layer_n, i, val }
+            end
         end
     end
 
-    return { layer_n, cell_n, val }
+    -- Branch-skipped cells have a data_ref one level deeper than their actual layer;
+    -- fall back to a full-table search.
+    for ln, l in ipairs(tbl.layers) do
+        for ci, cell in ipairs(l.cells) do
+            if vim.deep_equal(data_ref, cell.data_ref) then
+                return { ln, ci, val }
+            end
+        end
+    end
+
+    return { 1, 1, 1 }
 end
 
 ---@param new_tbl VidereTable
@@ -695,12 +888,21 @@ local function add_cell_to_sub_table(new_tbl, new_layer, old_tbl, old_layer, old
         local val_type = utils.ValueType(val)
 
         if val_type == "array" or val_type == "object" then
-            if not val.parent_reference then
-                val.parent_reference = { val.layer, val.cell }
+            if val.targets then
+                for _, target in ipairs(val.targets) do
+                    if not target.parent_reference then
+                        target.parent_reference = { target.layer, target.cell }
+                    end
+                    target.layer, target.cell = add_cell_to_sub_table(new_tbl, new_layer + 1, old_tbl,
+                        target.layer, target.cell, { new_layer, cell_num, i })
+                end
+            else
+                if not val.parent_reference then
+                    val.parent_reference = { val.layer, val.cell }
+                end
+                val.layer, val.cell = add_cell_to_sub_table(new_tbl, new_layer + 1, old_tbl, val.layer, val.cell,
+                    { new_layer, cell_num, i })
             end
-
-            val.layer, val.cell = add_cell_to_sub_table(new_tbl, new_layer + 1, old_tbl, val.layer, val.cell,
-                { new_layer, cell_num, i })
         end
     end
 
@@ -710,12 +912,21 @@ local function add_cell_to_sub_table(new_tbl, new_layer, old_tbl, old_layer, old
         local val_type = utils.ValueType(val)
 
         if val_type == "array" or val_type == "object" then
-            if not val.parent_reference then
-                val.parent_reference = { val.layer, val.cell }
+            if val.targets then
+                for _, target in ipairs(val.targets) do
+                    if not target.parent_reference then
+                        target.parent_reference = { target.layer, target.cell }
+                    end
+                    target.layer, target.cell = add_cell_to_sub_table(new_tbl, new_layer + 1, old_tbl,
+                        target.layer, target.cell, { new_layer, cell_num, i })
+                end
+            else
+                if not val.parent_reference then
+                    val.parent_reference = { val.layer, val.cell }
+                end
+                val.layer, val.cell = add_cell_to_sub_table(new_tbl, new_layer + 1, old_tbl, val.layer, val.cell,
+                    { new_layer, cell_num, i })
             end
-
-            val.layer, val.cell = add_cell_to_sub_table(new_tbl, new_layer + 1, old_tbl, val.layer, val.cell,
-                { new_layer, cell_num, i })
         end
     end
 
@@ -757,7 +968,13 @@ function M.UnbindSubTable(tbl)
                 local val_type = utils.ValueType(val)
 
                 if val_type == "array" or val_type == "object" then
-                    if val.parent_reference then
+                    if val.targets then
+                        for _, target in ipairs(val.targets) do
+                            if target.parent_reference then
+                                target.layer, target.cell = target.parent_reference[1], target.parent_reference[2]
+                            end
+                        end
+                    elseif val.parent_reference then
                         val.layer, val.cell = val.parent_reference[1], val.parent_reference[2]
                     end
                 end
@@ -768,7 +985,13 @@ function M.UnbindSubTable(tbl)
                 local val_type = utils.ValueType(val)
 
                 if val_type == "array" or val_type == "object" then
-                    if val.parent_reference then
+                    if val.targets then
+                        for _, target in ipairs(val.targets) do
+                            if target.parent_reference then
+                                target.layer, target.cell = target.parent_reference[1], target.parent_reference[2]
+                            end
+                        end
+                    elseif val.parent_reference then
                         val.layer, val.cell = val.parent_reference[1], val.parent_reference[2]
                     end
                 end
@@ -823,7 +1046,7 @@ end
 function M.ExpandCellPack(tbl, cells)
     for _, cell in pairs(cells) do
         local cell_ref = M.DataRefToTableRef(tbl, cell, 0)
-        M.ExpandCell(tbl, tbl.layers[cell_ref[1]].cells[cell_ref[1]])
+        M.ExpandCell(tbl, tbl.layers[cell_ref[1]].cells[cell_ref[2]])
     end
 end
 
