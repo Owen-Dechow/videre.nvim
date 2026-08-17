@@ -155,6 +155,13 @@ function M.JoinTableToBuffer(buf, videre_table, clear_table)
         on_mouse_move(buf, videre_table)
     end)
 
+    auto_cmd_for_buf(buf, videre_table, "QuitPre", function()
+        vim.cmd("split")
+        vim.api.nvim_set_current_buf(buf)
+        actions.AttemptCloseBuffer(buf, videre_table, true)
+    end)
+
+
     vim.api.nvim_buf_create_user_command(buf, "VidereCommit", function(opts)
         ---@type string|nil
         local choice = opts.fargs[1];

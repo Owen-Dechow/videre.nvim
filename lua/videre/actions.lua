@@ -404,22 +404,60 @@ function M.MakeChangeTypeMapping(buf, videre_tbl, layer_n, cell_n)
 end
 
 ---@param buf integer
+---@param quit boolean
+local function close(buf, quit)
+    if quit then
+        vim.cmd("quit")
+    else
+        if #vim.api.nvim_list_wins() == 1 then
+            vim.cmd(":new")
+            vim.cmd(":bfirst")
+        end
+
+        vim.api.nvim_buf_delete(buf, {})
+    end
+end
+
+---@param buf integer
+---@param videre_table VidereTable
+---@param quit boolean
+local function close_buf(buf, videre_table, quit)
+    local modified = vim.bo[videre_table.from_buffer].modified;
+    if not modified then
+        return close(buf, quit)
+    end
+
+    local bufs = vim.fn.win_findbuf(videre_table.from_buffer)
+    if #bufs == 0 then
+        vim.api.nvim_set_current_buf(videre_table.from_buffer)
+        vim.print("HERE")
+    end
+end
+
+---@param buf integer
+---@param videre_table VidereTable
+---@param quit boolean
+function M.AttemptCloseBuffer(buf, videre_table, quit)
+    if videre_table.is_saved then
+        close_buf(buf, videre_table, quit)
+    else
+        editing.MakeEditFloat({
+            hint = { "Close without saving?", "Enter y/yes to exit without saving.", "Exit and run `:VidereCommit` to save." },
+            on_submit = function(val)
+                val = string.lower(val)
+                if val == "y" or val == "yes" then
+                    close_buf(buf, videre_table, quit)
+                end
+            end
+        })
+    end
+end
+
+---@param buf integer
 ---@param videre_table VidereTable
 function M.MakeCloseWindowMapping(buf, videre_table)
     vim.keymap.set("n", config.keymaps.close_window, function()
-        if videre_table.is_saved then
-            vim.api.nvim_buf_delete(buf, {})
-        else
-            editing.MakeEditFloat({
-                hint = { "Close without saving?", "Enter y/yes to exit without saving.", "Exit and run `:VidereCommit` to save." },
-                on_submit = function(val)
-                    val = string.lower(val)
-                    if val == "y" or val == "yes" then
-                        vim.api.nvim_buf_delete(buf, {})
-                    end
-                end
-            })
-        end
+        M.AttemptCloseBuffer(buf, videre_table, false)
     end, { buffer = buf, nowait = true })
 end
 
