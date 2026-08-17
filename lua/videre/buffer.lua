@@ -155,12 +155,34 @@ function M.JoinTableToBuffer(buf, videre_table, clear_table)
         on_mouse_move(buf, videre_table)
     end)
 
-    vim.api.nvim_buf_create_user_command(buf, "VidereCommit", function()
-        local new_lines = videre_table.lang_spec.Encode(videre_table.data)
+    vim.api.nvim_buf_create_user_command(buf, "VidereCommit", function(opts)
+        ---@type string|nil
+        local choice = opts.fargs[1];
+        if choice ~= "all" and choice ~= "sub" and choice ~= nil then
+            vim.notify("Error: Argument must be either `all`, `sub`, or nil", vim.log.levels.ERROR)
+            return
+        end
+
+        local data;
+        if choice == "sub" then
+            data = videre_table.layers[1].cells[1].data
+        else
+            data = videre_table.data
+        end
+
+        local new_lines = videre_table.lang_spec.Encode(data)
         vim.api.nvim_buf_set_lines(videre_table.from_buffer, 0, -1, false, new_lines)
         videre_table.is_saved = true
         on_mouse_move(buf, videre_table)
-    end, {})
+    end, {
+        nargs = "?",
+        complete = function(lead, _, _)
+            local choices = { "all", "sub" }
+            return vim.tbl_filter(function(item)
+                return item:find('^' .. lead)
+            end, choices)
+        end
+    })
 
     on_mouse_move(buf, videre_table)
 end
