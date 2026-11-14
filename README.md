@@ -114,19 +114,19 @@ https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
     ---@type integer
     max_cell_lines = 5,
 
-    ---@comment Character used to indicate call values beyond `max_cell_lines`
+    ---@comment Character used to indicate cell values beyond `max_cell_lines`
     ---@type string
     collapse_indication_character = ".",
 
-    ---@comment Style of the connective lines
+    ---@comment Style of the cells
     ---@type LineStyle
     box_style = "rounded",
 
-    ---@comment Style of the cells
+    ---@comment Style of the connective lines
     ---@type LineStyle
     line_style = "rounded",
 
-    ---@comment Width of the editing character (int: [6, 999])
+    ---@comment Width of the editing window (int: [6, 999])
     ---@type integer
     editor_window_width = 60,
 
@@ -148,10 +148,12 @@ https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
 
     keymaps = {
         ---@comment Expand lines beyond `max_cell_lines`
+        ---@comment Can share a mapping with `collapse`: they are inverses and can never apply at the same time
         ---@type string
         expand = "E",
 
         ---@comment Collapse lines beyond `max_cell_lines`
+        ---@comment Can share a mapping with `expand`: they are inverses and can never apply at the same time
         ---@type string
         collapse = "E",
 
@@ -160,14 +162,15 @@ https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
         jump_forward = "L",
 
         ---@comment Move cursor to parent cell
+        ---@comment Can share a mapping with `return_to_parent_table`: the root cell has no parent to jump back to
         ---@type string
         jump_back = "H",
 
-        ---@comment Move cursor to cell above in cell column
+        ---@comment Move cursor to cell down in cell column
         ---@type string
         jump_down = "J",
 
-        ---@comment Move cursor to cell below in cell column
+        ---@comment Move cursor to cell up in cell column
         ---@type string
         jump_up = "K",
 
@@ -176,6 +179,7 @@ https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
         set_as_root = "R",
 
         ---@comment Return to the true root cell
+        ---@comment Only works on the root cell, which has no `jump_back` parent, so it can share a mapping with `jump_back`
         ---@type string
         return_to_parent_table = "H",
 
@@ -199,7 +203,7 @@ https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
         ---@type string
         change_type = "T",
 
-        ---@comment Undo a change 
+        ---@comment Undo a change
         ---@type string
         undo = "u",
 
@@ -263,7 +267,9 @@ https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
 ## 🚀 Running
 
 To open a graph view, go to a json file and run `:Videre`.
-The Videre window will open in a plit window to the right.
+The Videre window will open in a split window to the right, by default.
+You can change the side the window will open on using the `split_editor_style.side` option,
+or you can have with window open as a floating window using the `editor_type` option.
 The Videre buffer will have a filetype of `Videre`.
 
 ## ✏️ Editing
@@ -271,7 +277,7 @@ The following actions are allowed for editing:
 * Adding fields
 * Deleting fields
 * Changing key of field
-* Changing value fo field
+* Changing value of field
 * Toggling type of cell between array and object
 
 ## 🗂️ Different File Types
@@ -280,7 +286,7 @@ To enable different filetypes just add the correct parser plugin.
 Videre will automatically detect the installed plugin and
 allow you to explore that filetype.
 
-Here are a list of supported parsers:
+Here is a list of supported parsers:
 * JSON: ***builtin***
 * YAML: [graph_view_yaml_parser](https://github.com/Owen-Dechow/graph_view_yaml_parser)
 * TOML: [graph_view_toml_parser](https://github.com/Owen-Dechow/graph_view_toml_parser)
