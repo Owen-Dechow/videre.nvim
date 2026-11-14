@@ -45,19 +45,19 @@ M.config = {
     ---@type integer
     max_cell_lines = 5,
 
-    ---@comment Character used to indicate call values beyond `max_cell_lines`
+    ---@comment Character used to indicate cell values beyond `max_cell_lines`
     ---@type string
     collapse_indication_character = ".",
 
-    ---@comment Style of the connective lines
+    ---@comment Style of the cells
     ---@type LineStyle
     box_style = "rounded",
 
-    ---@comment Style of the cells
+    ---@comment Style of the connective lines
     ---@type LineStyle
     line_style = "rounded",
 
-    ---@comment Width of the editing character (int: [6, 999])
+    ---@comment Width of the editing window (int: [6, 999])
     ---@type integer
     editor_window_width = 60,
 
@@ -73,16 +73,18 @@ M.config = {
     ---@type boolean
     expand_newlines = false,
 
-    ---@comment Max display width of string values in characters; 0 disables wrapping (int: [0,9999])
+    ---@comment Max display width of string values in characters; 0 disables wrapping (int: [0, 9999])
     ---@type integer
     max_line_width = 40,
 
     keymaps = {
         ---@comment Expand lines beyond `max_cell_lines`
+        ---@comment Can share a mapping with `collapse`: they are inverses and can never apply at the same time
         ---@type string
         expand = "E",
 
         ---@comment Collapse lines beyond `max_cell_lines`
+        ---@comment Can share a mapping with `expand`: they are inverses and can never apply at the same time
         ---@type string
         collapse = "E",
 
@@ -91,14 +93,15 @@ M.config = {
         jump_forward = "L",
 
         ---@comment Move cursor to parent cell
+        ---@comment Can share a mapping with `return_to_parent_table`: the root cell has no parent to jump back to
         ---@type string
         jump_back = "H",
 
-        ---@comment Move cursor to cell above in cell column
+        ---@comment Move cursor to cell down in cell column
         ---@type string
         jump_down = "J",
 
-        ---@comment Move cursor to cell below in cell column
+        ---@comment Move cursor to cell up in cell column
         ---@type string
         jump_up = "K",
 
@@ -107,6 +110,7 @@ M.config = {
         set_as_root = "R",
 
         ---@comment Return to the true root cell
+        ---@comment Only works on the root cell, which has no `jump_back` parent, so it can share a mapping with `jump_back`
         ---@type string
         return_to_parent_table = "H",
 
@@ -130,7 +134,7 @@ M.config = {
         ---@type string
         change_type = "T",
 
-        ---@comment Undo a change 
+        ---@comment Undo a change
         ---@type string
         undo = "u",
 
