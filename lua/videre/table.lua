@@ -138,6 +138,7 @@ function M.DataToVidereTable(data, from_buffer, is_saved, lang_spec, states, sta
         lang_spec = lang_spec,
         state_idx = state_idx,
         states = states,
+        closing = false,
     }
 
     add_data_cell_to_table_layer(data, nil, tbl, 1, false, nil, {})
@@ -739,6 +740,7 @@ function M.MakeSubTable(tbl, layer_num, cell_num)
         lang_spec = tbl.lang_spec,
         states = tbl.states,
         state_idx = tbl.state_idx,
+        closing=tbl.closing,
     }
 
     add_cell_to_sub_table(new_tbl, 1, tbl, layer_num, cell_num, nil)

@@ -9,6 +9,7 @@
 ---@field lang_spec LangSpec
 ---@field states State[] 
 ---@field state_idx integer
+---@field closing boolean
 
 ---@class State
 ---@field data DataObj

@@ -34,7 +34,7 @@ local function parse_key(text)
         error("Malformed string key.")
     end
 
-    if type(text) ~= "string" then
+    if type(res) ~= "string" then
         error("Key value must be string.")
     end
 

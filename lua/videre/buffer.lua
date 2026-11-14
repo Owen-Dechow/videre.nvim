@@ -156,8 +156,12 @@ function M.JoinTableToBuffer(buf, videre_table, clear_table)
     end)
 
     auto_cmd_for_buf(buf, videre_table, "QuitPre", function()
+        -- A confirmed quit is in progress: let it through untouched
+        if videre_table.closing then
+            return
+        end
+
         vim.cmd("split")
-        vim.api.nvim_set_current_buf(buf)
         actions.AttemptCloseBuffer(buf, videre_table, true)
     end)
 

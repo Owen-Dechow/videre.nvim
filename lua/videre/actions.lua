@@ -430,7 +430,6 @@ local function close_buf(buf, videre_table, quit)
     local bufs = vim.fn.win_findbuf(videre_table.from_buffer)
     if #bufs == 0 then
         vim.api.nvim_set_current_buf(videre_table.from_buffer)
-        vim.print("HERE")
     end
 end
 
