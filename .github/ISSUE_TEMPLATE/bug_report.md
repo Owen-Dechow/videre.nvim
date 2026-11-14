@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Report a problem so we can fix it
 title: ''
 labels: bug
 assignees: ''
@@ -8,12 +8,25 @@ assignees: ''
 ---
 
 **Describe the bug**
-A clear and concise description of what the bug is.
+Describe what went wrong. Include any error messages you saw.
+
+**Steps to reproduce**
+List the steps that cause the bug, for example:
+* Open a `.json` file
+* Run `:Videre`
+* Press `E` on a cell
 
 **Expected behavior**
-A clear and concise description of what you expected to happen.
+Describe what you expected to happen instead.
+
+**Environment**
+* Neovim version (run `nvim --version`):
+* Operating system:
+* File type involved (JSON, YAML, TOML, or XML):
+* Your Videre configuration (if relevant):
 
 **Screenshots** (Optional)
-For some bugs, a screenshot is helpful, but all Owen-Dechow
-software emphasizes privacy; therefore, it is never required
-that you add a screenshot.
+A screenshot can help in some cases, but it is never required. All
+Owen-Dechow software emphasizes privacy, so only share a screenshot if
+you are comfortable doing so and it contains no sensitive information.
+Describing the problem in words is always enough.
