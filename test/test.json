@@ -1,19 +1,4 @@
 {
-    "example": {
-        "test": "This is some\ntest data that is very long in length and needs to be split up into multiple parts",
-        "nothing": null,
-        "nested_table": {
-            "array": [
-                "data"
-            ],
-            "string": "MY_STRING",
-            "myKey": 5
-        },
-        "empty_array": [
-            34
-        ],
-        "empty_table": {}
-    },
     "long_array_example": [
         "text_a",
         "text_b",
@@ -32,5 +17,18 @@
         [
             "THIRD"
         ]
-    ]
+    ],
+    "example": {
+        "empty_array": [],
+        "empty_table": {},
+        "test": "This is some\ntest data that is very long in length and needs to be split up into multiple parts",
+        "nothing": null,
+        "nested_table": {
+            "string": "MY_STRING",
+            "array": [
+                "data"
+            ],
+            "data": 5
+        }
+    }
 }
