@@ -740,7 +740,7 @@ function M.MakeSubTable(tbl, layer_num, cell_num)
         lang_spec = tbl.lang_spec,
         states = tbl.states,
         state_idx = tbl.state_idx,
-        closing=tbl.closing,
+        closing = tbl.closing,
     }
 
     add_cell_to_sub_table(new_tbl, 1, tbl, layer_num, cell_num, nil)
@@ -825,7 +825,7 @@ end
 function M.ExpandCellPack(tbl, cells)
     for _, cell in pairs(cells) do
         local cell_ref = M.DataRefToTableRef(tbl, cell, 0)
-        M.ExpandCell(tbl, tbl.layers[cell_ref[1]].cells[cell_ref[1]])
+        M.ExpandCell(tbl, tbl.layers[cell_ref[1]].cells[cell_ref[2]])
     end
 end
 
