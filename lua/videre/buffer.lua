@@ -156,7 +156,6 @@ function M.JoinTableToBuffer(buf, videre_table, clear_table)
     end)
 
     auto_cmd_for_buf(buf, videre_table, "QuitPre", function()
-        -- A confirmed quit is in progress: let it through untouched
         if videre_table.closing then
             return
         end

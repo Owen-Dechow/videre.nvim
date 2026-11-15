@@ -445,6 +445,7 @@ function M.AttemptCloseBuffer(buf, videre_table, quit)
             on_submit = function(val)
                 val = string.lower(val)
                 if val == "y" or val == "yes" then
+                    videre_table.closing = true
                     close_buf(buf, videre_table, quit)
                 end
             end
