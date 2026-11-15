@@ -22,7 +22,7 @@ using Neovim's terminal interface.
                            ╰────────────┴────────────────────────╯
 ```
 
-https://github.com/user-attachments/assets/e2e6d49a-4ab8-4718-a2a2-7839ca1ba4e2
+https://github.com/user-attachments/assets/24502708-6735-4b64-9854-c228886c10c3
 
 ## 🛠️ Features
 
