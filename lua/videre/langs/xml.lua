@@ -12,6 +12,8 @@ end
 M[1] = { "xml" }
 
 -- Move each `_attr` entry into its parent as "<prefix>name" (existing child keys win).
+---@param node any parsed XML node (tables are recursed into, anything else is ignored)
+---@param prefix string
 local function inline_attrs(node, prefix)
     if type(node) ~= "table" then
         return
