@@ -73,6 +73,14 @@ M.config = {
     ---@type boolean
     expand_newlines = false,
 
+    ---@comment XML only: inline `_attr` into the parent element as "@name" keys
+    ---@type boolean
+    xml_inline_attributes = false,
+
+    ---@comment XML only: prefix added to inlined attribute keys (requires `xml_inline_attributes`)
+    ---@type string
+    xml_attribute_prefix = "@",
+
     ---@comment Max display width of string values in characters; 0 disables wrapping (int: [0, 9999])
     ---@type integer
     max_line_width = 40,
@@ -389,6 +397,11 @@ function M.Setup(config)
 
     confirm_is_boolean("expand_tabs")
     confirm_is_boolean("expand_newlines")
+    confirm_is_boolean("xml_inline_attributes")
+    if type(M.config.xml_attribute_prefix) ~= "string" then
+        print_error("xml_attribute_prefix must be a string. Resetting to default value.")
+        reset_field("xml_attribute_prefix")
+    end
 end
 
 return M
