@@ -1,5 +1,5 @@
 <root>
-  <example>
+  <example an_attribute="a Value">
     <test>This is some test data</test>
     <empty_table/>
     <empty_array/>
