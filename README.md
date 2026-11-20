@@ -81,7 +81,7 @@ https://github.com/user-attachments/assets/24502708-6735-4b64-9854-c228886c10c3
     ---@comment Character used between cells
     ---@type boolean
     show_title = true,
-        
+
     ---@comment Character used between cells
     ---@type string
     outside_space = " ",
@@ -156,7 +156,7 @@ https://github.com/user-attachments/assets/24502708-6735-4b64-9854-c228886c10c3
 
     ---@comment XML only: inline `_attr` into the parent element as "@name" keys
     ---@type boolean
-    xml_inline_attributes = false,
+    xml_inline_attributes = true,
 
     ---@comment XML only: prefix added to inlined attribute keys (requires `xml_inline_attributes`)
     ---@type string

@@ -87,7 +87,7 @@ M.config = {
 
     ---@comment XML only: inline `_attr` into the parent element as "@name" keys
     ---@type boolean
-    xml_inline_attributes = false,
+    xml_inline_attributes = true,
 
     ---@comment XML only: prefix added to inlined attribute keys (requires `xml_inline_attributes`)
     ---@type string
@@ -259,11 +259,12 @@ local function confirm_is_single_char(field)
     end
 end
 
+---@param field string
 local function confirm_is_string(field)
     local val = get_field(field)
 
     if type(val) ~= "string" then
-        print_error(field .. " must be a single character string. Resetting to default value.")
+        print_error(field .. " must be a string. Resetting to default value.")
         reset_field(field)
     end
 end
@@ -422,7 +423,7 @@ function M.Setup(config)
     confirm_is_boolean("expand_newlines")
 
     confirm_is_boolean("xml_inline_attributes")
-    confirm_is_string("xml_inline_attribute_prefix")
+    confirm_is_string("xml_attribute_prefix")
 
     confirm_is_boolean("show_title")
 end
