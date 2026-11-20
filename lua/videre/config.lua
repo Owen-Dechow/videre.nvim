@@ -10,6 +10,10 @@ local M = {
 ---@class VidereConfig
 M.config = {
     ---@comment Character used between cells
+    ---@type boolean
+    show_title = true,
+
+    ---@comment Character used between cells
     ---@type string
     outside_space = " ",
 
@@ -21,6 +25,10 @@ M.config = {
     ---@type string
     value_space = "·",
 
+    ---@comment Character to pad the title section
+    ---@type string
+    title_space = " ",
+
     ---@comment Alignment of cell columns
     ---@type ColumnAlignment
     column_alignment = "center",
@@ -28,6 +36,10 @@ M.config = {
     ---@comment Alignment of the keys within the cell
     ---@type RowAlignment
     key_alignment = "right",
+
+    ---@comment Alignment of the cell title
+    ---@type RowAlignment
+    title_alignment = "center",
 
     ---@comment Alignment of the values within the cell
     ---@type RowAlignment
@@ -247,6 +259,15 @@ local function confirm_is_single_char(field)
     end
 end
 
+local function confirm_is_string(field)
+    local val = get_field(field)
+
+    if type(val) ~= "string" then
+        print_error(field .. " must be a single character string. Resetting to default value.")
+        reset_field(field)
+    end
+end
+
 ---@param enum string[]
 local function confirm_is_enum(field, enum)
     local val = get_field(field)
@@ -347,10 +368,12 @@ function M.Setup(config)
     confirm_is_single_char("collapse_indication_character")
     confirm_is_single_char("value_space")
     confirm_is_single_char("outside_space")
+    confirm_is_single_char("title_space")
 
     confirm_is_enum("column_alignment", { "top", "center", "bottom" })
     confirm_is_enum("key_alignment", { "left", "center", "right" })
     confirm_is_enum("value_alignment", { "left", "center", "right" })
+    confirm_is_enum("title_alignment", { "left", "center", "right" })
 
     confirm_is_integer_in_range("connection_spacing", 0, 99)
     confirm_is_integer_in_range("cell_spacing", 0, 99)
@@ -397,11 +420,11 @@ function M.Setup(config)
 
     confirm_is_boolean("expand_tabs")
     confirm_is_boolean("expand_newlines")
+
     confirm_is_boolean("xml_inline_attributes")
-    if type(M.config.xml_attribute_prefix) ~= "string" then
-        print_error("xml_attribute_prefix must be a string. Resetting to default value.")
-        reset_field("xml_attribute_prefix")
-    end
+    confirm_is_string("xml_inline_attribute_prefix")
+
+    confirm_is_boolean("show_title")
 end
 
 return M

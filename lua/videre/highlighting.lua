@@ -37,6 +37,14 @@ function M.HighlightFocusedCell(buf, cell, left)
     vim.hl.range(buf, ns_s, videre_special, B { cell.top_render_line, left },
         B { cell.top_render_line, left + cell.render_width })
 
+    if cell.title then
+        vim.hl.range(buf, ns_s, videre_special, B { cell.top_render_line + 1, left },
+            B { cell.top_render_line + 1, left + cell.render_width })
+
+        vim.hl.range(buf, ns_s, videre_special, B { cell.top_render_line + 2, left },
+            B { cell.top_render_line + 2, left + cell.render_width })
+    end
+
     local total_rows = cell.total_display_rows or #cell.values
     for i, entry in ipairs(cell.values) do
         local first_line = cell.top_render_line + (entry.row_offset or i)

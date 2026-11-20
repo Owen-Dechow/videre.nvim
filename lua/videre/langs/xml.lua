@@ -35,6 +35,7 @@ end
 
 ---@type LangSpec
 M[2] = {
+    ft = "xml",
     Decode = function(xml_text)
         local handler = tree:new()
         local parser = xml.parser(handler)

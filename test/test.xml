@@ -12,7 +12,8 @@
       </array>
     </nested_table>
   </example>
-  <long_array_example>
+  <long_array_example_with_very_long_name attr="bob" goat="8">
+      <_attr>texty</_attr>
     <item>text_a</item>
     <item>text_b</item>
     <item>text_c</item>
@@ -30,5 +31,5 @@
     <item>
       <value>THIRD</value>
     </item>
-  </long_array_example>
+  </long_array_example_with_very_long_name>
 </root>

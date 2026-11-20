@@ -14,6 +14,8 @@ local chars = {
         col_top = "┬",
         col_bottom = "┴",
         collapse = "╪",
+        l_rb = "├",
+        r_rb = "┤",
         link = {
             sharp = "├",
             rounded = "├",
@@ -33,6 +35,8 @@ local chars = {
         col_top = "┬",
         col_bottom = "┴",
         collapse = "╪",
+        l_rb = "├",
+        r_rb = "┤",
         link = {
             sharp = "├",
             rounded = "├",
@@ -52,6 +56,8 @@ local chars = {
         col_top = "┳",
         col_bottom = "┻",
         collapse = "╋",
+        l_rb = "┣",
+        r_rb = "┫",
         link = {
             sharp = "┠",
             rounded = "┠",
@@ -71,6 +77,8 @@ local chars = {
         col_top = "╦",
         col_bottom = "╩",
         collapse = "╬",
+        l_rb = "╠",
+        r_rb = "╣",
         link = {
             sharp = "╟",
             rounded = "╟",
@@ -131,6 +139,16 @@ end
 ---@return string
 function M.ColumnBottomBreak()
     return chars[config.box_style].col_bottom
+end
+
+---@return string
+function M.LeftRowBreak()
+    return chars[config.box_style].l_rb
+end
+
+---@return string
+function M.RightRowBreak()
+    return chars[config.box_style].r_rb
 end
 
 ---@return string
