@@ -10,6 +10,10 @@ local M = {
 ---@class VidereConfig
 M.config = {
     ---@comment Character used between cells
+    ---@type boolean
+    show_title = true,
+        
+    ---@comment Character used between cells
     ---@type string
     outside_space = " ",
 
@@ -21,6 +25,10 @@ M.config = {
     ---@type string
     value_space = "·",
 
+    ---@comment Character to pad the title section
+    ---@type string
+    title_space = " ",
+
     ---@comment Alignment of cell columns
     ---@type ColumnAlignment
     column_alignment = "center",
@@ -28,6 +36,10 @@ M.config = {
     ---@comment Alignment of the keys within the cell
     ---@type RowAlignment
     key_alignment = "right",
+
+    ---@comment Alignment of the cell title
+    ---@type RowAlignment
+    title_alignment = "center",
 
     ---@comment Alignment of the values within the cell
     ---@type RowAlignment
@@ -339,10 +351,12 @@ function M.Setup(config)
     confirm_is_single_char("collapse_indication_character")
     confirm_is_single_char("value_space")
     confirm_is_single_char("outside_space")
+    confirm_is_single_char("title_space")
 
     confirm_is_enum("column_alignment", { "top", "center", "bottom" })
     confirm_is_enum("key_alignment", { "left", "center", "right" })
     confirm_is_enum("value_alignment", { "left", "center", "right" })
+    confirm_is_enum("title_alignment", { "left", "center", "right" })
 
     confirm_is_integer_in_range("connection_spacing", 0, 99)
     confirm_is_integer_in_range("cell_spacing", 0, 99)
@@ -389,6 +403,7 @@ function M.Setup(config)
 
     confirm_is_boolean("expand_tabs")
     confirm_is_boolean("expand_newlines")
+    confirm_is_boolean("show_title")
 end
 
 return M

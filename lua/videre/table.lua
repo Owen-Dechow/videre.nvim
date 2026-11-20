@@ -53,9 +53,14 @@ local function add_data_cell_to_table_layer(data, cell_title, tbl, layer_number,
         tbl.layers[layer_number] = { cells = {} }
     end
 
+    local title = nil
+    if config.show_title then
+        title = tostring(cell_title)
+    end
+
     ---@type VidereCell
     local cell = {
-        title = cell_title,
+        title = title,
         type = utils.DataType(data),
         values = {},
         hidden_values = {},
@@ -81,7 +86,7 @@ local function add_data_cell_to_table_layer(data, cell_title, tbl, layer_number,
                 local new_data_ref = vim.deepcopy(data_ref)
                 new_data_ref[#new_data_ref + 1] = key
 
-                local conn = add_data_cell_to_table_layer(value, nil, tbl, layer_number + 1, true, linking_cell_ref,
+                local conn = add_data_cell_to_table_layer(value, key, tbl, layer_number + 1, true, linking_cell_ref,
                     new_data_ref)
                 cell.hidden_values[i] = { key, conn }
             else
@@ -94,7 +99,7 @@ local function add_data_cell_to_table_layer(data, cell_title, tbl, layer_number,
                 local new_data_ref = vim.deepcopy(data_ref)
                 new_data_ref[#new_data_ref + 1] = key
 
-                local conn = add_data_cell_to_table_layer(value, nil, tbl, layer_number + 1, false, linking_cell_ref,
+                local conn = add_data_cell_to_table_layer(value, key, tbl, layer_number + 1, false, linking_cell_ref,
                     new_data_ref)
                 cell.values[i] = { key, conn }
             else
@@ -195,7 +200,14 @@ local function get_cell_min_width(cell, tbl)
         end
     end
 
-    return key_col_width + max_value_width + 3
+    local rows_min = key_col_width + max_value_width + 3
+
+    local title_row = 0
+    if cell.title then
+        title_row = utils.StringWidth(cell.title) + 2
+    end
+
+    return math.max(rows_min, title_row)
 end
 
 
@@ -225,6 +237,10 @@ local function get_layer_min_height(layer, tbl)
     local layer_height = 0
     for _, cell in pairs(layer.cells) do
         local cell_height = 0
+        if cell.title then
+            cell_height = 3
+        end
+
         if not cell.is_hidden then
             for _, entry in ipairs(cell.values) do
                 local val = entry[2]
@@ -276,11 +292,29 @@ end
 local function render_cell_at_width(cell, tbl, width, is_root)
     local key_col_width = get_cell_key_col_width(cell, tbl)
 
-    local rows = { boxes.TopLeft(is_root) ..
-    string.rep(boxes.HorizontalBox(), key_col_width) ..
-    boxes.ColumnTopBreak() ..
-    string.rep(boxes.HorizontalBox(), width - key_col_width - 3) ..
-    boxes.TopRight() }
+    local rows;
+    if cell.title then
+        local _, key, _ = utils.PadLine(cell.title, width - 2, config.title_alignment, config.title_space);
+        rows = {
+            boxes.TopLeft(is_root)
+            .. string.rep(boxes.HorizontalBox(), width - 2)
+            .. boxes.TopRight(),
+            boxes.VerticalLine()
+            .. key
+            .. boxes.VerticalLine(),
+            boxes.LeftRowBreak()
+            .. string.rep(boxes.HorizontalBox(), key_col_width)
+            .. boxes.ColumnTopBreak()
+            .. string.rep(boxes.HorizontalBox(), width - key_col_width - 3)
+            .. boxes.RightRowBreak()
+        }
+    else
+        rows = { boxes.TopLeft(is_root) ..
+        string.rep(boxes.HorizontalBox(), key_col_width) ..
+        boxes.ColumnTopBreak() ..
+        string.rep(boxes.HorizontalBox(), width - key_col_width - 3) ..
+        boxes.TopRight() }
+    end
 
     for i, entry in ipairs(cell.values) do
         local key, val = entry[1], entry[2]
