@@ -642,8 +642,7 @@ function M.JumpToCellAndValue(tbl, layer_num, cell_num, val)
     end
 
     local line_text = vim.api.nvim_buf_get_lines(0, row - 1, row, false)[1] or ""
-    local sub_str = vim.fn.strcharpart(line_text, 0, col - 1)
-    local byte_col = #sub_str
+    local byte_col = utils.DisplayColToByte(line_text, col)
 
     vim.api.nvim_win_set_cursor(0, { row, byte_col })
 

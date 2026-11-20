@@ -61,7 +61,32 @@ end
 ---@param val string
 ---@return integer
 function M.StringWidth(val)
-    return vim.str_utfindex(val, "utf-16")
+    return vim.api.nvim_strwidth(val)
+end
+
+---Convert a 1-based display column into a byte index into `str`, clamped to a
+---character boundary (never splits a double-width character).
+---@param str string
+---@param col integer
+---@return integer
+function M.DisplayColToByte(str, col)
+    local target = col - 1
+    local byte_idx = 0
+    local display_col = 0
+    local char_count = vim.fn.strchars(str)
+    for i = 0, char_count - 1 do
+        if display_col >= target then
+            break
+        end
+        local c = vim.fn.strcharpart(str, i, 1)
+        local w = M.StringWidth(c)
+        if display_col + w > target then
+            break
+        end
+        display_col = display_col + w
+        byte_idx = byte_idx + #c
+    end
+    return byte_idx
 end
 
 ---@param val integer
