@@ -1,5 +1,6 @@
 {
     "long_array_example": [
+        {"中文键": "中文值", "数组": [1, 2]},
         "text_a",
         "text_b",
         "text_c",

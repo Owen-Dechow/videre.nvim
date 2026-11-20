@@ -12,7 +12,7 @@ M.config = {
     ---@comment Character used between cells
     ---@type boolean
     show_title = true,
-        
+
     ---@comment Character used between cells
     ---@type string
     outside_space = " ",
@@ -84,6 +84,14 @@ M.config = {
     ---@comment Toggle expansion of \n and \r\n characters
     ---@type boolean
     expand_newlines = false,
+
+    ---@comment XML only: inline `_attr` into the parent element as "@name" keys
+    ---@type boolean
+    xml_inline_attributes = true,
+
+    ---@comment XML only: prefix added to inlined attribute keys (requires `xml_inline_attributes`)
+    ---@type string
+    xml_attribute_prefix = "@",
 
     ---@comment Max display width of string values in characters; 0 disables wrapping (int: [0, 9999])
     ---@type integer
@@ -251,6 +259,16 @@ local function confirm_is_single_char(field)
     end
 end
 
+---@param field string
+local function confirm_is_string(field)
+    local val = get_field(field)
+
+    if type(val) ~= "string" then
+        print_error(field .. " must be a string. Resetting to default value.")
+        reset_field(field)
+    end
+end
+
 ---@param enum string[]
 local function confirm_is_enum(field, enum)
     local val = get_field(field)
@@ -403,6 +421,10 @@ function M.Setup(config)
 
     confirm_is_boolean("expand_tabs")
     confirm_is_boolean("expand_newlines")
+
+    confirm_is_boolean("xml_inline_attributes")
+    confirm_is_string("xml_attribute_prefix")
+
     confirm_is_boolean("show_title")
 end
 

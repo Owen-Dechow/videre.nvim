@@ -11,6 +11,28 @@ end
 
 M[1] = { "xml" }
 
+-- Move each `_attr` entry into its parent as "<prefix>name" (existing child keys win).
+---@param node any parsed XML node (tables are recursed into, anything else is ignored)
+---@param prefix string
+local function inline_attrs(node, prefix)
+    if type(node) ~= "table" then
+        return
+    end
+    local attrs = node._attr
+    node._attr = nil
+    for _, child in pairs(node) do
+        inline_attrs(child, prefix)
+    end
+    if type(attrs) == "table" then
+        for k, v in pairs(attrs) do
+            local key = prefix .. k
+            if node[key] == nil then
+                node[key] = v
+            end
+        end
+    end
+end
+
 ---@type LangSpec
 M[2] = {
     ft = "xml",
@@ -18,6 +40,10 @@ M[2] = {
         local handler = tree:new()
         local parser = xml.parser(handler)
         parser:parse(xml_text)
+        local cfg = require("videre.config").config
+        if cfg.xml_inline_attributes then
+            inline_attrs(handler.root, cfg.xml_attribute_prefix)
+        end
         return handler.root
     end,
     Encode = nil,

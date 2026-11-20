@@ -54,7 +54,7 @@ local function add_data_cell_to_table_layer(data, cell_title, tbl, layer_number,
     end
 
     local title = nil
-    if config.show_title then
+    if config.show_title and config.show_title then
         title = tostring(cell_title)
     end
 
