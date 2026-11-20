@@ -20,7 +20,7 @@ end
 ---@return [integer, integer]
 local function convert_col_to_bytes(pos, buf)
     local line = vim.api.nvim_buf_get_lines(buf, pos[1], pos[1] + 1, false)[1]
-    local loc = { pos[1], vim.fn.byteidx(line, pos[2] - 1) }
+    local loc = { pos[1], utils.DisplayColToByte(line, pos[2]) }
     return loc
 end
 
