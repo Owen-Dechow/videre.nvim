@@ -79,6 +79,10 @@ https://github.com/user-attachments/assets/24502708-6735-4b64-9854-c228886c10c3
 
 {
     ---@comment Character used between cells
+    ---@type boolean
+    show_title = true,
+        
+    ---@comment Character used between cells
     ---@type string
     outside_space = " ",
 
@@ -90,6 +94,10 @@ https://github.com/user-attachments/assets/24502708-6735-4b64-9854-c228886c10c3
     ---@type string
     value_space = "·",
 
+    ---@comment Character to pad the title section
+    ---@type string
+    title_space = " ",
+
     ---@comment Alignment of cell columns
     ---@type ColumnAlignment
     column_alignment = "center",
@@ -97,6 +105,10 @@ https://github.com/user-attachments/assets/24502708-6735-4b64-9854-c228886c10c3
     ---@comment Alignment of the keys within the cell
     ---@type RowAlignment
     key_alignment = "right",
+
+    ---@comment Alignment of the cell title
+    ---@type RowAlignment
+    title_alignment = "center",
 
     ---@comment Alignment of the values within the cell
     ---@type RowAlignment
